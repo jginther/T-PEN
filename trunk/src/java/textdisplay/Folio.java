@@ -782,9 +782,7 @@ DatabaseWrapper.closePreparedStatement(ps);
      */
     public String getImageURLResize(int size) throws SQLException 
     {String toret="";
-     try{   if (archive.compareTo("ENAP") == 0 && this.getCollectionName().compareTo("Manuscript 415") != 0) {
-            return "";
-        }
+     try{   
      
         
         toret= textdisplay.Archive.getURLResized(this.folioNumber, size);
