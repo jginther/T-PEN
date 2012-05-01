@@ -1,0 +1,48 @@
+<%-- include for bug reporting --%>
+<%@ page pageEncoding="UTF-8" %>
+<%@ page import="user.User" %>
+<%
+           int bugID = 0;
+           bugID = Integer.parseInt(session.getAttribute("UID").toString());
+           User bugUser = new user.User(bugID);
+%>
+<div id="bugReport" class="ui-corner-tl">
+    <form id="bugForm" onsubmit="$('#FBextra').change();$('#formToggle').click();" method="POST" action="http://165.134.241.72/ScoutSubmit.asp" target="_blank">
+        <h3>Report to T&#8209;PEN</h3>
+        <input type="hidden" value="James Ginther" name="ScoutUserName" />
+        <input type="hidden" value="T-PEN" name="ScoutProject" />
+        <input type="hidden" value="Use Cases" name="ScoutArea" />
+        <input type="hidden" value="Thank you. A new case has been submitted. You can close this tab to resume your work." name="ScoutDefaultMessage" />
+        <input type="hidden" value="We are aware of this problem and are working to fix it. Thank you." name="ScoutMessage" />
+        <input type="hidden" value="cubap@slu.edu" name="ScoutPersonAssignedTo" />
+        <input type="hidden" value="1" name="Priority" />
+        <input id="extraSubmit" type="hidden" value="" name="Extra" />
+        <input id="FBemail" type="hidden" value="<%out.print(thisUser.getUname());%>" name="Email" />
+        <input type="hidden" name="FriendlyResponse" value="1" />
+<!--        Category is not supported in Scout at this time and will be added to the description.-->
+        <select id="FBcategory" name="Category">
+            <option value="Bug">Report a Bug</option>
+            <option value="Inquiry">Ask a Question</option>
+            <option value="Feature">Request a Feature</option>
+        </select>
+        <input type="text" value="Brief Description" name="Description" />
+        <textarea id="FBextra" placeholder="Include any additional information" name="FBExtra"></textarea>
+        <input class="ui-button tpenButton" type="submit" value="Submit this Report" />
+        <span id="FBcancel" class="ui-button tpenButton right" onclick="$('#formToggle').click();return false;">Cancel<span class="left ui-icon ui-icon-cancel"></span></span>
+    </form>
+    <div title="Report a bug using this form." id="formToggle"></div>
+</div>
+        <script type="text/javascript">
+            $(function(){
+                var messageContent = [""];
+                $("#FBcategory,#FBextra").change(function(){
+                    messageContent.length = 0;
+                    if($("#transcriptionPage").is('body'))messageContent.push("Page Layout: ",liveTool," tool\n");
+                    messageContent.push("Category: ",$("#FBcategory").val(),"\n",
+                    "User: ",$("#FBemail").val(),"\n",
+                    "Location: ",document.location.href,"\n",
+                    "Reported: ",$("#FBextra").val(),"\n");
+                    $("#extraSubmit").val(messageContent.join(''));
+                })
+            });
+        </script>

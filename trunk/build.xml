@@ -1,0 +1,55 @@
+<project name="TPEN" default="build.my.war">
+<property name="file.name" value="TPEN.war" />
+<target name="-pre-jar" > 
+<propertyfile file="src/java\version.properties"> 
+<entry key="BUILD" value="1" type="int" operation="+"/> 
+</propertyfile> 
+</target> 
+<path id="application.classpath">
+   <fileset dir="lib">
+   </fileset>
+</path>
+<target name="-pre-compile">
+ <propertyfile file="src/java\version.properties">
+  <entry key="BUILD" value="1" type="int" operation="+" /> 
+  <entry key="DATE" value="${TODAY}" type="date" operation="=" /> 
+  </propertyfile>
+  </target>
+
+  <target name="build"
+ depends="-pre-compile">
+ 
+
+
+<javac srcdir="src" destdir="bin" classpathref="application.classpath"/>
+    
+<copy file="src/java/version.properties" todir="bin" />
+
+<fileset dir="web"><include name="*/*"></include></fileset>
+<fileset dir="contents">
+      <include name="*/*"/>
+    </fileset>
+    <war destfile="${file.name}" webxml="web/WEB-INF/web.xml">
+      <classes dir="bin" />
+     <fileset dir="web" 
+includes="**/*">
+</fileset>
+ 
+	<lib dir="lib"></lib>
+	<fileset dir="src/java">
+<include name="version.properties"></include>
+</fileset>
+    </war>
+    <echo>Copying ${file.name}...</echo>
+<!--    <copy file="${file.name}" todir="${deploy.dir}" />-->
+  </target><target name="deploy" description="Install web application"
+          >
+    <deploy url="${url}" username="${username}" password="${password}"
+            path="${path}" war="file:TPEN.war"/>
+  </target>
+<target name="undeploy" description="Remove web application">
+    <undeploy url="${url}" username="${username}" password="${password}"
+            path="${path}"/>
+  </target>
+</project>
+

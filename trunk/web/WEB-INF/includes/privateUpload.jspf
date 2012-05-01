@@ -1,0 +1,180 @@
+<%@ page pageEncoding="UTF-8" %>
+<style type="text/css">
+    #uploadImages {position: fixed;z-index: 50;overflow: auto;max-height: 90%;
+                   width:60%;top:5%;left:20%;padding: 15px;
+                   box-shadow: 0 0 0 2000px rgba(0,0,0,.4);display: none;}
+    /* prevent replacing */
+    #uploadImages li {padding: 0 !important; height: auto !important;
+                      float: none !important; width:auto !important;margin: 0 !important;
+                      position: static !important; overflow: auto;
+    }
+    #uploadImages ol ul {
+        margin-left: 10px;
+    }
+    #uploadImages ol ul li {
+        list-style: inside disc !important;
+    }
+    #uploadImages ol li {
+        list-style: inside decimal !important;
+    }
+    #upload-frame {visibility: hidden;height:0;width:0;display: none;}
+</style>
+<!--<script type="text/javascript">
+    TODO Progressbar functions are not returned correctly from the server at 
+    this time. This process may be replaced by a simpler function in the future
+    and is not called currently.
+    var progressBarValue=0;
+    $(function() {
+        $("#progressbar").progressbar({value:0});
+        $("progressbarWrapper").hide();
+    });
+    function updateProgressBar(progressBarValue) {
+        $("#progressbar").progressbar("option","value",progressBarValue);
+    }
+    var req;
+    function ajaxFunction(){
+        var url = "FileUpload?city=private&repository=lib&collection=TPEN(private)";
+        if (window.XMLHttpRequest){ 
+            req = new XMLHttpRequest();
+            try{
+                req.onreadystatechange = funcReadyStateChange;
+                req.open("GET", url, true);
+            } catch (e) {
+                console.log(e);
+            }
+                req.send(null);
+            }
+        else if (window.ActiveXObject) { 
+            req = new ActiveXObject("Microsoft.XMLHTTP");
+            if (req) {
+                req.onreadystatechange = funcReadyStateChange;
+                req.open("GET", url, true);
+                req.send();
+            }
+        }
+    }
+    function fileProgress(){
+        var url = "FileUpload?city=private&repository=lib&collection=TPEN(private)";
+        var jqxhr = $.ajax({
+            type: "POST",
+            url: url,
+            contentType: "multipart/form-data",
+            dataType: "xml"
+        });
+        jqxhr.onreadystatechange = funcReadyStateChange;
+        jqxhr.open("GET", url, true);
+        jqxhr.send();
+    }
+    function funcReadyStateChange(){
+        if (req.readyState == 4){
+            if (req.status == 200){
+                var xml = req.responseXML;
+                var responseNode=xml.getElementsByTagName("response")[0];
+                var noOfBytesRead =responseNode.getElementsByTagName("bytes_read")[0].childNodes[0].nodeValue;
+                var totalNoOfBytes = responseNode.getElementsByTagName("content_length")[0].childNodes[0].nodeValue;
+                progressBarValue=noOfBytesRead/totalNoOfBytes*100;             
+//                document.getElementById("status").style.display="block";
+//                document.getElementById("percentDone").innerHTML="Percentage Completed: "+Math.floor(progressBarValue)+"%";
+//                document.getElementById("bytesRead").innerHTML= noOfBytesRead;
+//                document.getElementById("totalNoOfBytes").innerHTML= "of "+totalNoOfBytes;
+                $("#progressbarWrapper").show();
+                console.log(noOfBytesRead);
+                console.log(totalNoOfBytes);
+                console.log(progressBarValue);
+                if (progressBarValue<100){
+                    window.setTimeout("ajaxFunction();", 100);
+                    window.setTimeout("updateProgressBar(progressBarValue);", 100);
+                } else {
+                    console.log("Done");
+                    window.setTimeout("updateProgressBar(100);", 100);
+                    document.getElementById("progressbarWrapper").style.display = "none";
+//                    document.getElementById("status").style.display="none";
+                    $("#doneUploading").show().siblings().hide();
+                }
+            } else {
+                console.log(req.statusText);
+            }
+        }
+    }
+</script>-->
+<div>
+    <a id="uploadImagesBtn" class="tpenButton" 
+       onclick="$('#uploadImages').fadeIn(500);">Upload Images (Advanced)</a>
+</div>
+<div id="uploadImages" class="ui-widget-content ui-corner-all">
+    <a id="closeUpload" class="right tpenButton" 
+       onclick="$('#uploadImages').fadeOut(400);">Close</a>
+    <h3>Private Image Upload</h3>
+    <p>
+        T&#8209;PEN will store private user images for you. Properly prepared 
+        files will be imported into a project to which you can invite 
+        <span class="loud">up to 5 collaborators</span>. Uploaded images do not 
+        appear in manuscript listings, cannot be publicly shared, and cannot be 
+        included in more than one project.
+    </p>
+    <h4>Prepare Your File</h4>
+    <ol>
+        <li>All images must be in <strong>.jpg format</strong>;
+            <ul>
+                <li>images will be resized to 2000 pixels in height and 85% quality;</li>
+                <li>straight and close-cropped images work best.</li>
+            </ul>
+        </li>
+        <li>Combine all images into a single <strong>.zip file</strong>;
+            <ul>
+                <li>file size may not exceed 200MB;</li>
+            </ul>
+        </li>
+        <li>Upload the file below; and</li>
+        <li>Invite collaborators from the Project Management page.</li>
+    </ol>
+    <form id="fileUpload" onsubmit="//ajaxFunction();" 
+          action="FileUpload?city=private&repository=lib&collection=TPEN(private)" 
+          ENCTYPE="multipart/form-data" method="POST" target="upload-frame">
+        <h4>Upload File</h4>
+        <div id="fileUploadSubmit">
+            <span id="doneUploading" style="display: none;">
+                You may close this form when your file has finished uploading. 
+                Your new project will be created automatically.<br>
+                <a onclick="$(this).parent().hide().siblings().show();">
+                    Upload another file
+                </a>
+            </span>
+            <input id="file" name="file" 
+                   type="file" class="ui-button tpenButton left"/>
+            <input name="Upload" type="submit" 
+                   value="Upload .zip" class="ui-button tpenButton left clear-left"/>
+        </div>
+        <div id="progressbarWrapper" style="height:20px;width:100px;display: none;">
+            <div id="progressbar" style="height:100%;"></div>
+        </div>
+        <!--  TODO Code related to commented functions above to support progressbar.
+            <div id="status" style="display:none">
+                <table width="100%" class="backgroundClass">
+                    <tr>
+                        <td align="center" nowrap="nowrap">
+                            <div id="percentDone" style="font-weight: bold;"> </div>
+                        </td>
+                    </tr>
+                </table>	
+                <table width="100%" class="backgroundClass">
+                    <tr>
+                        <td align="center" nowrap="nowrap">
+                            <div id="bytesRead" style="font-weight: bold;"> </div>
+                        </td>
+                    </tr>
+                </table>	
+                <table width="100%" class="backgroundClass">
+                    <tr>
+                        <td align="center" nowrap="nowrap">
+                            <div id="totalNoOfBytes" style="font-weight: bold;"> </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>-->
+        <iframe id="upload-frame" name="upload-frame"></iframe>
+    </form>
+</div>
+<script type="text/javascript">
+    $("#uploadImagesBtn").appendTo("#uploadImagesDiv");
+</script>
