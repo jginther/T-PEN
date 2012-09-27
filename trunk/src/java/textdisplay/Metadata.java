@@ -41,7 +41,7 @@ public class Metadata
     String msIdentifier;
     String msSettlement;
     String msRepository;
-    String msCollection;
+    String msCollection="";
     String msIdNumber;
     String author;
     String date;
@@ -253,6 +253,7 @@ PreparedStatement ps=null;
             author=rs.getString("author");
             description=rs.getString("description");
             location=rs.getString("location");
+            msCollection=rs.getString("msCollection");
         }
     }
     finally
@@ -266,7 +267,7 @@ DatabaseWrapper.closePreparedStatement(ps);
     }
     public void commit() throws SQLException
     {
-        String query="update metadata set title=?, subtitle=?, msIdentifier=?, msSettlement=?, msRepository=?, msIdNumber=?, subject=?, author=?, `date`=?, location=?, description=?, language=? where projectID=? ";
+        String query="update metadata set title=?, subtitle=?, msIdentifier=?, msSettlement=?, msRepository=?, msIdNumber=?, subject=?, author=?, `date`=?, location=?, description=?, language=?, msCollection=? where projectID=? ";
         Connection j=null;
         PreparedStatement updater=null;
         try
@@ -285,7 +286,8 @@ DatabaseWrapper.closePreparedStatement(ps);
             updater.setString(10, this.location);
             updater.setString(12, this.language);
             updater.setString(11, this.description);
-            updater.setInt(13, projectID);
+            updater.setString(13, this.msCollection );
+            updater.setInt(14, projectID);
             updater.execute();
         }
         catch(Exception e){

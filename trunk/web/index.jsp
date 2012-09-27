@@ -3,6 +3,7 @@
     Created on : Oct 26, 2010, 12:08:31 PM
     Author     : cubap,jdeerin1
 --%>
+<%@page import="java.util.Date"%>
 <%@page import="textdisplay.ProjectPermissions"%>
 <%@page import="user.*"%>
 <%@page import = "java.sql.SQLException"%>
@@ -144,8 +145,31 @@
                 width: 50%;
                 float: left;
             }
+            #newArticle {
+                display: none;
+                position: absolute;
+                left: 40%;
+                width: 20%;
+                top: 15px;
+                z-index: 600;
+                cursor: pointer;
+            }
+            #newArticle a {
+                color: white;
+                text-decoration: none;
+                line-height: 1.5;
+                font-weight: 700;
+                font-size: 125%;
+            }
+            #newArticle:hover {
+                background-color: rgba(255,255,255,.5);
+            }
+            td > a {
+                text-decoration: none;
+            }
         </style>
         <script type="text/javascript">
+            var recentArticleDate;
             $(function() {
                 $( "#tabs" ).tabs({
                     show: tabSize
@@ -238,10 +262,18 @@
                     $("#browseMS,#overlay").hide('fade',500,function(){
                     });
                 });        
+                if (previousLogin < recentArticleDate){
+                    $("#newArticle")
+                    .show()
+                    .click(function(){
+                        $("#updateBtn").click();
+                        $(this).fadeOut("slow");
+                    });
+                }
             });
             function maintenanceDate(){
                 var today = new Date();
-                while (today.getDay() !== 2){
+                while (today.getDay() !== 4){
                     today.setDate(today.getDate()+1);
                 }
                 return(today.toLocaleDateString());
@@ -258,6 +290,7 @@
                     success: function(data){
                         var posts = data.responseData.feed;
 //                        console.log(posts);
+                        recentArticleDate = Date.parse(posts.entries[0].publishedDate);
                         var addResult = new Array();
                         var blogContents = new Array();
                         for (var i=0;i<posts.entries.length;i++){
@@ -348,6 +381,12 @@ $(window).load(function(){gapi.plusone.go();});
             <div class="fb-like" data-href="http://www.t-pen.org" data-send="false" data-layout="button_count" data-width="20" data-show-faces="false" data-action="recommend" data-font="segoe ui"></div>
             <div class="g-plusone" data-size="small" data-href="http://www.t-pen.org"></div>
         </div>
+        <div id="newArticle">
+            <a>
+                <img alt="New Article" src="images/sharing/blogger-new.png" class="left" />
+                A new article has been published since your last login
+            </a>
+        </div>
         <div id="wrapper2">
 <%
     if (thisUser == null){%>
@@ -369,9 +408,10 @@ $(window).load(function(){gapi.plusone.go();});
             <div align="center" class="tagline">
                 transcription for paleographical and editorial notation</div>
             <div id="header2">
-                <div id="maintenance" class="loud"><span class="ui-icon ui-icon-info left"></span>Scheduled Maintenance: <script type="text/javascript">document.write(maintenanceDate());</script> from 9am - 10am CDT</div>
+                <div id="maintenance" class="loud"><span class="ui-icon ui-icon-info left"></span>Scheduled Maintenance: <script type="text/javascript">document.write(maintenanceDate());</script> from 7pm - 8pm CDT</div>
                     <%
                     if (thisUser != null){
+                        Date previousLogin = thisUser.getLastActiveDate();
                         thisUser.updateLastActive();
                         user.User [] currentUsers = user.User.getLoggedInUsers();
                         int numberTranscribing = currentUsers.length;
@@ -383,6 +423,11 @@ $(window).load(function(){gapi.plusone.go();});
                         if(numberTranscribing==0)usersTranscribing.append("No one is transcribing at the moment...   ");
                         int sbLength = usersTranscribing.length();
                     %>
+                    <script type="text/javascript">
+                    <%
+                        out.print("var previousLogin = '" + previousLogin.getTime() + "';");
+                    %>                      
+                    </script>
                         <div>
                             Welcome, <%out.print(thisUser.getFname()+" "+thisUser.getLname());%>. <a href="login.jsp" onclick="logout();return false;">Logout/Change User</a>
                             <br/><div>There <%out.print("<span title='"+usersTranscribing.toString().substring(0,sbLength-3) +"' id=userList>"+userCount+"</span>");%> transcribing right now</div>
@@ -439,7 +484,7 @@ $(window).load(function(){gapi.plusone.go();});
                 <%
                                }
                 %>
-                        <li><a title="T-PEN Team Blog" href="#updates">Updates</a></li>
+                        <li><a title="T-PEN Team Blog" id="updateBtn" href="#updates">Updates</a></li>
                         <li><a title="Browse all available manuscripts by city or repository" href="#manuscripts">Browse Manuscripts</a></li>
                         <span class="right caps" id="msCount"><%out.print(textdisplay.Manuscript.getTotalManuscriptCount());%> Manuscripts Available</span>
                 </ul>
@@ -535,7 +580,8 @@ $(window).load(function(){gapi.plusone.go();});
                             projectID = userProjects[i].getProjectID();
                             projectTitle = userProjects[i].getProjectName();
                             recentFolio = userProjects[i].getLastModifiedFolio();
-                            out.print("<tr title=\"" + projectTitle + "\"><td>"+ projectTitle + "</td>"
+                            out.print("<tr title=\"" + projectTitle 
+                                    + "\"><td><a href=\"transcription.jsp?projectID=" + projectID + "&p="+ recentFolio +"\">"+ projectTitle + "</a></td>"
                                     + "<td><a href=\"transcription.jsp?projectID=" + projectID + "&p="+ recentFolio +"\" title='Resume Transcribing' class='left'><span class='ui-icon ui-icon-pencil left'></span>Resume</a></td>"
                                     + "<td><a href=\"project.jsp?projectID=" + projectID + "\" title='Manage this Project' class='left'><span class='ui-icon ui-icon-gear left'></span>Manage</a></td>"
                                     + "<td><a href='#' onclick='$(\"#rearrangeProjects\").click();return false;' title='Reorder this List'><span class='ui-icon ui-icon-shuffle left'></span></a></td>");
@@ -757,9 +803,9 @@ $(window).load(function(){gapi.plusone.go();});
                         <p><em>Watch a video of real transcribing in action (11 minutes):</em><br/>
                             <iframe src="http://www.youtube.com/embed/_81fJbOpTcE" frameborder="0" allowfullscreen></iframe>
                         </p>
-                        <p><em>Learn more about transcribing in this five minute tour <span class="quiet small">(please note this is for version 0.4, current is <%out.print(Folio.getRbTok("VERSION"));%>)</span>:</em><br/>
+<!--                        <p><em>Learn more about transcribing in this five minute tour <span class="quiet small">(please note this is for version 0.4, current is <%out.print(Folio.getRbTok("VERSION"));%>)</span>:</em><br/>
                             <iframe src="http://www.youtube.com/embed/sOnJtWtCFZc" frameborder="0" allowfullscreen></iframe>
-                        </p>
+                        </p>-->
                     </div>
                     </div>
                 </div>

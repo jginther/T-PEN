@@ -1,14 +1,3 @@
-package detectimages;
-
-import java.awt.image.BufferedImage;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Vector;
-import javax.media.jai.JAI;
-import javax.media.jai.PlanarImage;
-
 /*
  * @author Jon Deering
  Copyright 2011 Saint Louis University. Licensed under the Educational Community License, Version 2.0 (the "License"); you may not use
@@ -20,6 +9,18 @@ import javax.media.jai.PlanarImage;
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions
  and limitations under the License.
  */
+package detectimages;
+
+import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Vector;
+import javax.media.jai.JAI;
+import javax.media.jai.PlanarImage;
+
+
 public class imageProcessor implements Runnable {
 
     private BufferedWriter records;

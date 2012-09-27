@@ -16,10 +16,6 @@
         <servlet-name>imageResize</servlet-name>
         <servlet-class>imageLines.ImageResize</servlet-class>
     </servlet>
-<servlet>
-        <servlet-name>characterImage</servlet-name>
-        <servlet-class>characterImage</servlet-class>
-    </servlet>
     <servlet>
         <servlet-name>transcriptionPDF</servlet-name>
         <servlet-class>textdisplay.transcriptionPDF</servlet-class>
@@ -145,10 +141,15 @@
         <servlet-name>FileUpload</servlet-name>
         <servlet-class>ImageUpload.FileUpload</servlet-class>
     </servlet>
-<servlet-mapping>
+    <servlet>
         <servlet-name>characterImage</servlet-name>
-        <url-pattern>/characterImage</url-pattern>
-    </servlet-mapping>
+        <servlet-class>characterImage</servlet-class>
+    </servlet>
+    <servlet>
+        <description>proxy used in sciat annotation</description>
+        <servlet-name>proxy</servlet-name>
+        <servlet-class>servlets.proxy</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>imageResize</servlet-name>
         <url-pattern>/imageResize</url-pattern>
@@ -276,6 +277,10 @@
     <servlet-mapping>
         <servlet-name>FileUpload</servlet-name>
         <url-pattern>/FileUpload</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>proxy</servlet-name>
+        <url-pattern>/proxy</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>3000</session-timeout>

@@ -170,7 +170,7 @@ PreparedStatement qry=null;
  * @return array of users who are leaders for this group
  * @throws SQLException
  */
-    public User[] getLeader() throws SQLException
+public User[] getLeader() throws SQLException
         {
         Connection j = null;
 PreparedStatement qry=null;
@@ -348,7 +348,7 @@ PreparedStatement qry=null;
             qry=null;
             try
                 {
-                String query = "Update groupMemebers set role=? where GID=? and UID=?";
+                String query = "Update groupMembers set role=? where GID=? and UID=?";
                 j = DatabaseWrapper.getConnection();
                 
                 qry = j.prepareStatement(query);
@@ -389,7 +389,7 @@ PreparedStatement qry=null;
             }
         }
 
-    /**
+/**
      * Return the enum item that matches the roles stored in the DB
      * @param UID
      * @return

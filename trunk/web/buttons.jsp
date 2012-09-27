@@ -10,7 +10,7 @@
             if (session.getAttribute("UID") == null) {
 %>              <%@ include file="loginCheck.jsp" %><%
             } else {
-            UID = Integer.parseInt(session.getAttribute("UID").toString());
+                UID = Integer.parseInt(session.getAttribute("UID").toString());
             }%>
 <%@page import ="textdisplay.Hotkey"%>
 <%@page import ="textdisplay.TagButton"%>
@@ -82,13 +82,14 @@
                 }
                 if (projectID > 0) {
                     %>
-                    <script>
+                    <script type="text/javascript">
                         document.location = "buttons.jsp?projectID=<%out.print(projectID);%>";
                     </script>
         <%
                     //response.sendRedirect("buttons.jsp?projectID=" + projectID);
                 } else {
-                    out.print("<div class=\"error\">No project specified!</div>");
+                String errorMessage = "No project has been indicated.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
                 }
                 return;
             }
@@ -214,9 +215,13 @@ function equalWidth(){
     }
     function updatea(obj) {
         var objValue = obj.value;
+        var decimalTest =/^[0-9]+(\.[0-9]+)+$/;
         if (isNaN(objValue) || objValue < 32 || objValue > 65518){
             $(obj).addClass('badInfo').prev("input").val(" ").parent().attr("title","Please use a valid unicode decimal (1-65518)\nUse the link on this page to find a complete list.");
         } else {
+            if (!objValue.match(decimalTest)){
+                obj.value = parseInt(objValue);
+            }
             $(obj).removeClass('badInfo').prev("input").val(String.fromCharCode(objValue)).parent().attr("title","");
     //        var idnum=obj.id;
     //        idnum+="a";

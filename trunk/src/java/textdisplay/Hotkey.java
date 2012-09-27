@@ -120,7 +120,7 @@ public class Hotkey {
                 this.key = rs.getInt("key");
             } else {
                 this.uid = 0;
-                this.position = 0;
+                this.position = position;
                 this.key = 0;
             }
         } finally {

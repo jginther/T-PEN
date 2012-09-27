@@ -1,11 +1,19 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * @author Jon Deering
+Copyright 2011 Saint Louis University. Licensed under the Educational Community License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License.
+
+You may obtain a copy of the License at http://www.osedu.org/licenses/ECL-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions
+and limitations under the License.
  */
 
 package match;
 
 
+import detectimages.blob;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,6 +28,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import textdisplay.DatabaseWrapper;
 import textdisplay.Folio;
 import textdisplay.Manuscript;
@@ -33,6 +42,7 @@ public class matchLocater
     String url;
     int matchCount;
     int [] charCounts=new int[5000];
+    int [] maxLevels=new int[5000];
     public matchLocater(String img1, int blob1) throws SQLException
     {
         matchCount=0;
@@ -57,7 +67,7 @@ public class matchLocater
         Folio f=new Folio(folioNum);
         if(f.isCached())
         {
-        url+="<a href=\"paleo.jsp?highlightblob=true&page="+rs.getString(1).replace(".jpg", "")+"&orig=1&blob="+rs.getInt(2)+"\"><img src=\"characterImage?page="+rs.getString(1).replace(".jpg", "")+"&orig=1&blob="+rs.getInt(2)+"\"/></a>\n";
+        url+="<span href=\"paleo.jsp?highlightblob=true&page="+rs.getString(1).replace(".jpg", "")+"&orig=1&blob="+rs.getInt(2)+"\"><img src=\"characterImage?page="+rs.getString(1).replace(".jpg", "")+"&orig=1&blob="+rs.getInt(2)+"\"/></span>\n";
         matchCount++;
         }
  else
@@ -66,6 +76,118 @@ public class matchLocater
          }
     }
     j.close();
+    }
+    public matchLocater(int img1, int blob1, String express) throws FileNotFoundException, IOException, SQLException
+    {
+        url="";
+        charCounts=new int[5000];
+        for(int i=0;i<charCounts.length;i++)
+        {
+            charCounts[i]=0;
+            maxLevels[i]=0;
+        }
+            textdisplay.Folio fol=new textdisplay.Folio(img1);
+            Manuscript ms=new Manuscript(img1);
+        File f=new File(textdisplay.Folio.getRbTok("TempPaleoResults")+textdisplay.Folio.getRbTok("PalographyDataDir")+"/"+ms.getID()+"/"+img1+".txt .txt");
+        BufferedReader b=new BufferedReader(new FileReader(f));
+        String [] lines=blob.readFileIntoArray(f.getAbsolutePath());
+        String oldpage="";
+        Pattern colon=Pattern.compile(":");
+        Pattern semicolon=Pattern.compile(";");
+        Pattern slash=Pattern.compile("/");
+        Pattern quote=Pattern.compile("\"");
+        for(int i=0;i<lines.length;i++)
+        {
+            
+            String buff=lines[i];
+            buff=buff.replace("\"","");
+            //System.out.print(buff+"\n");
+            String parts1=colon.split(semicolon.split(buff)[0])[1];
+            String parts2=colon.split(semicolon.split(buff)[1])[0];
+            //String parts2=buff.replace("\"", "").split("\\;")[1].split(":")[0];
+            parts2=parts2.replace(".jpg", "").split("/")[parts2.replace(".jpg", "").split("/").length-1].replace(".txt", "");
+            String parts3=colon.split(semicolon.split(buff)[1])[1];
+            int blob=Integer.parseInt(parts1);
+            if (blob1==0 ||blob1==blob)
+            {
+                if(oldpage.compareTo(parts2)!=0)
+                {
+                    Folio tmp=new Folio(Integer.parseInt(parts2));
+                    url+=("<br>"+tmp.getPageName()+":");
+                    oldpage=parts2;
+                }
+                //this is what they wanted
+                 //int folioNum=Integer.parseInt(parts2);
+                 //System.out.print("folio:"+folioNum+"\n");
+                
+            charCounts[blob]++;
+            }
+ 
+
+        }
+        b.close();
+    }
+    public matchLocater(int img1, int blob1, String express, int requiredMatchLevel) throws FileNotFoundException, IOException, SQLException
+    {
+        url="";
+        charCounts=new int[5000];
+        maxLevels=new int[5000];
+        for(int i=0;i<charCounts.length;i++)
+        {
+            
+        maxLevels[i]=0;
+            charCounts[i]=0;
+        }
+            textdisplay.Folio fol=new textdisplay.Folio(img1);
+            Manuscript ms=new Manuscript(img1);
+        File f=new File(textdisplay.Folio.getRbTok("TempPaleoResults")+textdisplay.Folio.getRbTok("PalographyDataDir")+"/"+ms.getID()+"/"+img1+".txt .txt");
+        BufferedReader b=new BufferedReader(new FileReader(f));
+        String [] lines=blob.readFileIntoArray(f.getAbsolutePath());
+        String oldpage="";
+        Pattern colon=Pattern.compile(":");
+        Pattern semicolon=Pattern.compile(";");
+        Pattern slash=Pattern.compile("/");
+        Pattern quote=Pattern.compile("\"");
+        int maxMatchLevel=0;
+        for(int i=0;i<lines.length;i++)
+        {
+            
+            String buff=lines[i];
+            buff=buff.replace("\"","");
+            //System.out.print(buff+"\n");
+            String parts1=colon.split(semicolon.split(buff)[0])[1];
+            String parts2=colon.split(semicolon.split(buff)[1])[0];
+            //String parts2=buff.replace("\"", "").split("\\;")[1].split(":")[0];
+            parts2=parts2.replace(".jpg", "").split("/")[parts2.replace(".jpg", "").split("/").length-1].replace(".txt", "");
+            String parts3=buff.replace("\"", "").split("\\;")[1].split(":")[1].split("/")[0];
+            String parts4=buff.replace("\"", "").split("\\;")[1].split(":")[1].split("/")[1];
+            int matchLevel=Integer.parseInt(parts4);
+            int blob=Integer.parseInt(parts1);
+            if (blob1==0 ||blob1==blob)
+            {
+                
+                if(oldpage.compareTo(parts2)!=0)
+                {
+                    Folio tmp=new Folio(Integer.parseInt(parts2));
+                    url+=("<br>"+tmp.getPageName()+":");
+                    oldpage=parts2;
+                }
+                //this is what they wanted
+                 //int folioNum=Integer.parseInt(parts2);
+                 //System.out.print("folio:"+folioNum+"\n");
+                if(matchLevel>=requiredMatchLevel)
+                {
+                    if(matchLevel>maxLevels[blob])
+                {
+                 maxLevels[blob]=matchLevel;   
+                }
+            charCounts[blob]++;
+                }
+            }
+ 
+
+        }
+        b.close();
     }
     public matchLocater(int img1, int blob1, Boolean noSQL) throws FileNotFoundException, IOException, SQLException
     {
@@ -85,7 +207,9 @@ public class matchLocater
             String parts1=buff.replace("\"", "").split("\\;")[0].split(":")[1];
             String parts2=buff.replace("\"", "").split("\\;")[1].split(":")[0];
             parts2=parts2.replace(".jpg", "").split("/")[parts2.replace(".jpg", "").split("/").length-1].replace(".txt", "");
-            String parts3=buff.replace("\"", "").split("\\;")[1].split(":")[1];
+            String parts3=buff.replace("\"", "").split("\\;")[1].split(":")[1].split("/")[0];
+            String parts4=buff.replace("\"", "").split("\\;")[1].split(":")[1].split("/")[1];
+            int matchLevel=Integer.parseInt(parts4);
             int blob=Integer.parseInt(parts1);
             if (blob1==0 ||blob1==blob)
             {
@@ -103,7 +227,7 @@ public class matchLocater
         {
             String folioNumber=parts2;
             
-                url+="<a href=\"paleo.jsp?highlightblob=true&p="+folioNumber+"&orig=1&blob="+parts3+"\"><img src=\"characterImage?page="+folio.getFolioNumber()+"&blob="+parts3+"\"/></a>\n";
+                url+="<span href=\"paleo.jsp?highlightblob=true&p="+folioNumber+"&orig=1&blob="+parts3+"\"><img src=\"characterImage?page="+folio.getFolioNumber()+"&blob="+parts3+"\"/></span>\n";
             }
         else
             {
@@ -114,6 +238,86 @@ public class matchLocater
  
 
         }
+        b.close();
+    }
+    public matchLocater(int img1, int blob1, Boolean noSQL, int requiredMatchLevel) throws FileNotFoundException, IOException, SQLException
+    {
+        url="";
+        charCounts=new int[5000];
+        for(int i=0;i<charCounts.length;i++)
+            charCounts[i]=0;
+            textdisplay.Folio fol=new textdisplay.Folio(img1);
+            Manuscript ms=new Manuscript(img1);
+        File f=new File(textdisplay.Folio.getRbTok("TempPaleoResults")+textdisplay.Folio.getRbTok("PalographyDataDir")+"/"+ms.getID()+"/"+img1+".txt .txt");
+        BufferedReader b=new BufferedReader(new FileReader(f));
+        String oldpage="";
+        int maxLevel=0;
+        String tmpResult="";
+        int count=0;
+        while(b.ready())
+        {
+            String buff=b.readLine();
+            //System.out.print(buff+"\n");
+            String parts1=buff.replace("\"", "").split("\\;")[0].split(":")[1];
+            String parts2=buff.replace("\"", "").split("\\;")[1].split(":")[0];
+            parts2=parts2.replace(".jpg", "").split("/")[parts2.replace(".jpg", "").split("/").length-1].replace(".txt", "");
+            String parts3=buff.replace("\"", "").split("\\;")[1].split(":")[1].split("/")[0];
+            String parts4=buff.replace("\"", "").split("\\;")[1].split(":")[1].split("/")[1];
+            int matchLevel=Integer.parseInt(parts4);
+            
+            if(matchLevel>=requiredMatchLevel)
+        {
+            
+            int blob=Integer.parseInt(parts1);
+            if (blob1==0 ||blob1==blob)
+            {
+                if(oldpage.compareTo(parts2)!=0)
+                {
+                    
+                    if(oldpage.compareTo("")!=0){
+                        url+="<div class='result' matchLevel='"+maxLevel+"'>"+new Folio(Integer.parseInt(oldpage)).getPageName() +":"+tmpResult+"</div>";
+                        tmpResult="";
+                    }
+                    Folio tmp=new Folio(Integer.parseInt(parts2));
+                    
+                    oldpage=parts2;
+                }
+                //this is what they wanted
+                 int folioNum=Integer.parseInt(parts2);
+                 System.out.print("folio:"+folioNum+"\n");
+        Folio folio=new Folio(folioNum);
+        if(matchLevel>maxLevel)
+            maxLevel=matchLevel;
+        if(folio.isCached())
+        {
+            int x,y,width,height;
+            String folioNumber=parts2;
+            blobGetter thisBlob=new blobGetter(folioNumber,Integer.parseInt(parts3));
+           width=       (int) (thisBlob.getHeight()*2.941);
+           height=      (int) (thisBlob.getWidth()*2.941);
+           x=           (int) (thisBlob.getX()*2.941);
+           y=           (int) (thisBlob.getY()*2.941);
+           width=       (int) (thisBlob.getHeight()*1.47);
+           height=      (int) (thisBlob.getWidth()*1.47);
+           x=           (int) (thisBlob.getX()*1.47);
+           y=           (int) (thisBlob.getY()*1.47);
+           /*width=       (int) (thisBlob.getHeight());
+           height=      (int) (thisBlob.getWidth());
+           x=           (int) (thisBlob.getX());
+           y=           (int) (thisBlob.getY());*/
+//                tmpResult+="<img src=\""+folio.getImageURL().replace("_xlarge","")+"?zoom=50&region="+x+","+y+","+width+","+height+"&h=2000\"/>\n";
+            tmpResult+="<span href=\"paleo.jsp?highlightblob=true&p="+folioNumber+"&orig=1&blob="+parts3+"\" matchLevel='"+matchLevel+"'><img src=\"characterImage?page="+folio.getFolioNumber()+"&blob="+parts3+"\"/></span>\n";
+            }
+        else
+            {
+                tmpResult+="<span class='match' matchLevel='"+matchLevel+"'>This image is not available for display.</span>";
+ }
+            charCounts[blob]++;
+            }
+ 
+
+        }
+        }b.close();
     }
     public String getUrls()
     {
@@ -126,6 +330,10 @@ public class matchLocater
     public int getBlobMatchCount(int blob)
     {
         return charCounts[blob];
+    }
+    public int getBlobMaxMatchLevel(int blob)
+    {
+        return maxLevels[blob];
     }
     public static int getBlobMatchCount(String img1, int blob1, Connection j) throws SQLException
     {
@@ -215,7 +423,7 @@ public class matchLocater
             toret+="<br>"+tmp;
             oldimg=tmp;
         }
-        toret+="<a href=\"paleo.jsp?page="+tmp+"&blob="+num+"&blobhighlight=true\"><img src=\"characterImage?page="+tmp+"&blob="+num+"\"/></a>\n";
+        toret+="<span href=\"paleo.jsp?page="+tmp+"&blob="+num+"&blobhighlight=true\"><img src=\"characterImage?page="+tmp+"&blob="+num+"\"/></span>\n";
         }catch(Exception ex)
         {
             toret+="<br>"+blobs[i];

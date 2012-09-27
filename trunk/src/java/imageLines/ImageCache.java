@@ -12,8 +12,7 @@ and limitations under the License.
 
 package imageLines;
 
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -73,8 +72,7 @@ PreparedStatement updateHitCount=null;
             if(rs.next())
             {
             InputStream fis=rs.getBinaryStream(1);
-            JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(fis);
-	         BufferedImage bi = decoder.decodeAsBufferedImage();
+            BufferedImage bi= ImageIO.read(fis);
                  return bi;
             }
             else return null;

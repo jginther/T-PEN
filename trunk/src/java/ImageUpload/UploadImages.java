@@ -70,7 +70,7 @@ public class UploadImages extends HttpServlet {
         out.print("file is too large!");
         return;
     }
-    if (fileItemTemp.getName().endsWith("zip") ){
+    if (fileItemTemp.getName().toLowerCase().endsWith("zip") ){
         
         File f=new File(Folio.getRbTok("uploadLocation")+"/"+thisUser.getLname()+thisUser.getUID()+".zip");
         fileItemTemp.write(f);

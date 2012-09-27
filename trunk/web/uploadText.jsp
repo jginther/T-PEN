@@ -25,7 +25,9 @@ String location = "";
         {
         if (request.getParameter("p")!=null) p=Integer.parseInt(request.getParameter("p"));
         projectID=Integer.parseInt(request.getParameter("projectID"));
-        location = (Integer.parseInt(request.getParameter("p"))>0) ? "?projectID="+projectID+"&p="+request.getParameter("p") : "?projectID="+projectID;
+        location = (p>0) ? 
+            "?projectID="+projectID+"&p="+p : 
+            "?projectID="+projectID;
         }
     else{
         out.print("no project specified!");

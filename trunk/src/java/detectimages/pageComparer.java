@@ -86,7 +86,7 @@ public class pageComparer implements Callable
                     biggest=b1[i].size;
                             else
                                 biggest=b2[j].size;
-                    if (b1[i].size > 25 && b2[j].size > 25 ) { //& (Math.abs(b1[i].size - b2[j].size) < biggest*.3)
+                    if (b1[i].size > 25 && b2[j].size > 25  && (Math.abs(b1[i].size - b2[j].size) < biggest*.3)){
                         //blobComparer b = new blobComparer(b1[i], b2[j]);
                         //double tmp =  b.run();
                         //altBlob a=b1[i].altVersion;
@@ -96,39 +96,38 @@ public class pageComparer implements Callable
                         double tmp;
                         double tmp2;
                         
-                        if(false && (b1[i].matrixVersion.matrix.length-b2[j].matrixVersion.matrix.length>3 || b2[j].matrixVersion.matrix.length-b1[i].matrixVersion.matrix.length>3))
+                        if(true || (b1[i].matrixVersion.matrix.length-b2[j].matrixVersion.matrix.length>3 || b2[j].matrixVersion.matrix.length-b1[i].matrixVersion.matrix.length>3))
                         {
                         if(b1[i].matrixVersion.matrix.length<b2[j].matrixVersion.matrix.length)
                         {
-                            tmp=b1[i].matrixVersion.compareWithScaling(b2[j].matrixVersion);
+                            //tmp=b1[i].matrixVersion.compareWithScaling(b2[j].matrixVersion);
                         //tmp=b1[i].matrixVersion.compareToWithAdjust(b2[j].matrixVersion.scaleMatrixBlob(b2[j],b1[i].matrixVersion.matrix.length));
-                        //tmp2=b1[i].matrixVersion.compareTo(b2[j].matrixVersion);
+                        tmp=b1[i].matrixVersion.compareToWithAdjust(b2[j].matrixVersion);
                         }
                         else
-                            tmp=b1[i].matrixVersion.compareWithScaling(b2[j].matrixVersion);
+                            //tmp=b1[i].matrixVersion.compareWithScaling(b2[j].matrixVersion);
                             //tmp=b1[i].matrixVersion.scaleMatrixBlob(b1[i],b2[j].matrixVersion.matrix.length).compareToWithAdjust(b2[j].matrixVersion);
-                            //tmp2=b1[i].matrixVersion.compareTo(b2[j].matrixVersion);
-                        }
-                        else
+                            tmp=b1[i].matrixVersion.compareToWithAdjust(b2[j].matrixVersion);
+                        {}}
+                        //else
                         {
                             //tmp=0.0;
                             //tmp=b1[i].matrixVersion.compareWithScaling(b2[j].matrixVersion);
                             //tmp=b1[i].matrixVersion.compareToWithAdjust(b2[j].matrixVersion);  //
-                            tmp=b1[i].altVersion.run(b2[j].altVersion);
+                            //tmp2=b1[i].altVersion.run(b2[j].altVersion);
                             
                             
-                           tmp=(double) tmp /biggest;
+                          // tmp2=(double) tmp2 /biggest;
                            
                         }
 
                        //             tmp=(double) tmp / biggest;
                          //tmp=tmp2;
                          
-                        
-                                //    System.out.print("tmp:"+tmp+"\n");
+                        //tmp=tmp2;
                         if (tmp > 0.7) {
                             matches++;
-                            
+                         
                             try{
 //b1[i].matrixVersion.writeGlyph(assignment[0]+assignment[1]+i+j+"a", b2[j].matrixVersion);
     //System.out.print("tmp:"+tmp+"\n");
@@ -143,7 +142,8 @@ public class pageComparer implements Callable
                             w.flush();
                             //String a="\"insert into blobs(img1, blob1,img2,blob2) values ('"+assignment[0] + "','" + b1[i].id + "','" + assignment[1] + "','" + b2[j].id + "');\n";
                             //String a="\""+assignment[0] + "\",\"" + b1[i].id + "\",\"" + assignment[1] + "\",\"" + b2[j].id + "\"\n";
-                            String a=(assignment[0] + ":" + b1[i].id + ";" + assignment[1] + ":" + b2[j].id+ "\n");
+                            int tmpInt=(int) (tmp*100);
+                            String a=(assignment[0] + ":" + b1[i].id + ";" + assignment[1] + ":" + b2[j].id+"/"+tmpInt+ "\n");
                             res.append(a);
                             //blob.writeMatchResults(i, j, assignment, w);
                         }

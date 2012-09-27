@@ -154,7 +154,7 @@ public class ImageResize extends HttpServlet {
                         mailer mail = new mailer();
                         try {
                             String body = "Failed to load image " + url + " which is folio " + folioNum + " from " + new Manuscript(folioNum).getShelfMark() + "\n";
-                            mail.sendMail(Folio.getRbTok("EMAILSERVER"), "TPEN@t-pen.org", Folio.getRbTok("NOTIFICATIONEMAIL"), "TPEN Image Issue", body);
+                            mail.sendMail("slumailrelay.slu.edu", "TPEN@t-pen.org", "jdeerin1@slu.edu", "TPEN Image Issue", body);
                             response.sendError(500);
                             return;
                         } catch (Exception ex) {
@@ -170,7 +170,10 @@ public class ImageResize extends HttpServlet {
                 if (f.getArchive().compareTo("private") == 0) {
                     try {
                         response.setContentType("image/jpeg");
-                        toResize = ImageHelpers.readAsBufferedImage(f.getImageName() + ".jpg");
+                        if(f.getImageName().contains("."))
+                            toResize = ImageHelpers.readAsBufferedImage(f.getImageName());
+                            else
+                        toResize = ImageHelpers.readAsBufferedImage(f.getImageName()+".jpg");
                     } catch (Exception e) {
                         try {
                             ir.completeFail(e.getMessage());
@@ -179,8 +182,8 @@ public class ImageResize extends HttpServlet {
                         }
                         mailer mail = new mailer();
                         try {
-                            String body = "Failed to load image " + url + " which is folio " + folioNum + " from " + new Manuscript(folioNum).getShelfMark() + "\n";
-                            mail.sendMail(Folio.getRbTok("EMAILSERVER"), "TPEN@t-pen.org", Folio.getRbTok("NOTIFICATIONEMAIL"), "TPEN Image Issue", body);
+                            String body = "Failed to load image " + f.getImageName() + " which is folio " + folioNum + " from " + new Manuscript(folioNum).getShelfMark() + "\n";
+                            mail.sendMail("slumailrelay.slu.edu", "TPEN@t-pen.org", "jdeerin1@slu.edu", "TPEN Image Issue", body);
                             response.sendError(500);
                             return;
                         } catch (Exception ex) {
@@ -193,7 +196,7 @@ public class ImageResize extends HttpServlet {
                     }
                 }
 
-                if (a.getConnectionMethod() == Archive.connectionType.cookie) {
+                if (toResize==null && a.getConnectionMethod() == Archive.connectionType.cookie) {
                     try {
                         Logger.getLogger(ImageResize.class.getName()).log(Level.SEVERE, "using cookie method with url "+a.getCookieURL()+"\n");
                         String cookiegetter = a.getCookieURL(); //"";
@@ -209,7 +212,7 @@ public class ImageResize extends HttpServlet {
                         mailer mail = new mailer();
                         try {
                             String body = "Failed to load image " + url + " which is folio " + folioNum + " from " + new Manuscript(folioNum).getShelfMark() + "\n";
-                            mail.sendMail(Folio.getRbTok("EMAILSERVER"), "TPEN@t-pen.org", Folio.getRbTok("NOTIFICATIONEMAIL"), "TPEN Image Issue", body);
+                            mail.sendMail("slumailrelay.slu.edu", "TPEN@t-pen.org", "jdeerin1@slu.edu", "TPEN Image Issue", body);
                             response.sendError(500);
                             return;
                         } catch (Exception ex) {
@@ -221,7 +224,7 @@ public class ImageResize extends HttpServlet {
 
                     }
                 }
-                if (a.getConnectionMethod() == Archive.connectionType.none) {
+                if (toResize==null && a.getConnectionMethod() == Archive.connectionType.none) {
                     try {
                         Logger.getLogger(ImageResize.class.getName()).log(Level.SEVERE, "using no special method\n");
                         toResize = ImageHelpers.readAsBufferedImage(imageURL);
@@ -234,7 +237,7 @@ public class ImageResize extends HttpServlet {
                         mailer mail = new mailer();
                         try {
                             String body = "Failed to load image " + url + " which is folio " + folioNum + " from " + new Manuscript(folioNum).getShelfMark() + "\n";
-                            mail.sendMail(Folio.getRbTok("EMAILSERVER"), "TPEN@t-pen.org", Folio.getRbTok("NOTIFICATIONEMAIL"), "TPEN Image Issue", body);
+                            mail.sendMail("slumailrelay.slu.edu", "TPEN@t-pen.org", "jdeerin1@slu.edu", "TPEN Image Issue", body);
                             response.sendError(500);
                             return;
                         } catch (Exception ex) {
@@ -253,13 +256,14 @@ public class ImageResize extends HttpServlet {
                     } catch (Exception e) {
                         try {
                             ir.completeFail(e.getMessage());
+                            Logger.getLogger(ImageResize.class.getName()).log(Level.SEVERE, null, e);
                         } catch (Exception ex) {
                             Logger.getLogger(ImageResize.class.getName()).log(Level.SEVERE, null, ex);
                         }
                         mailer mail = new mailer();
                         try {
                             String body = "Failed to load image " + url + " which is folio " + folioNum + " from " + new Manuscript(folioNum).getShelfMark() + "\n";
-                            mail.sendMail(Folio.getRbTok("EMAILSERVER"), "TPEN@t-pen.org", Folio.getRbTok("NOTIFICATIONEMAIL"), "TPEN Image Issue", body);
+                            mail.sendMail("slumailrelay.slu.edu", "TPEN@t-pen.org", "jdeerin1@slu.edu", "TPEN Image Issue", body);
                             response.sendError(500);
                             return;
                         } catch (Exception ex) {
@@ -286,7 +290,7 @@ public class ImageResize extends HttpServlet {
                         mailer mail = new mailer();
                         try {
                             String body = "Failed to load image " + url + " which is folio " + folioNum + " from " + new Manuscript(folioNum).getShelfMark() + "\n";
-                            mail.sendMail(Folio.getRbTok("EMAILSERVER"), "TPEN@t-pen.org", Folio.getRbTok("NOTIFICATIONEMAIL"), "TPEN Image Issue", body);
+                            mail.sendMail("slumailrelay.slu.edu", "TPEN@t-pen.org", "jdeerin1@slu.edu", "TPEN Image Issue", body);
                             response.sendError(500);
                             return;
                         } catch (Exception ex) {
@@ -314,7 +318,10 @@ public class ImageResize extends HttpServlet {
         int oldh=toResize.getHeight();
         height=(int) (((width / (double) toResize.getWidth()) * toResize.getHeight()));
         }*/
+        if(a.getName().compareTo("private")!=0 && a.getConnectionMethod()!=Archive.connectionType.local)
+        {
         ImageCache.setImage(folioNum, toResize);
+        }
         toResize = ImageHelpers.scale(toResize, height, width);
         //ImageHelpers.writeImage(toResize, "/usr/web/tosend/debug.jpg");
         OutputStream os = response.getOutputStream();

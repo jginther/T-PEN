@@ -38,7 +38,7 @@
                     -webkit-box-shadow: 0px 0px 2px black; 
                     box-shadow:0px 0px 2px black;}
         </style>
-        <script>
+        <script type="text/javascript">
             $(function() {
 //                $( ".returnButton" ).addClass("ui-state-default ui-corner-bl ui-corner-br")
 //                    .css("display","inline-block")

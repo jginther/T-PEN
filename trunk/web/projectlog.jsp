@@ -69,7 +69,7 @@ else
         if(request.getParameter("submitted")!=null)
             {
             String content=request.getParameter("logContent");
-            p.addLogEntry(content, UID); // ,"userAdded"
+            p.addLogEntry("<span class='log_user'></span>"+content, UID); // ,"userAdded"
             }
         out.print(p.getProjectLog());
         %>

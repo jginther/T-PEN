@@ -1,0 +1,197 @@
+<%-- 
+    Document   : sciat.jspf
+    Created on : Jul 31, 2012, 9:03:00 PM
+    Author     : Patrick Cuba
+
+This is the main container for the annotation tool, in this instance it is a
+jspf for simple inclusion on a jsp page. The only requirements on this page are
+the correct generation of linked javaScript and authentication variables, which
+are easily converted to other page types.
+--%>
+<%@ page pageEncoding="UTF-8" %>
+<!--These are the js required for this page to work. 
+Include them here or upstream if desired.
+jQuery and jQueryUI are also used, but are not required for basic function.
+-->
+        <script type="text/javascript" src="js/sciat/jquery.rdfquery.rdfa-1.0.js"></script>
+        <script type="text/javascript" src="js/sciat/Annotation.js"></script>
+        <script type="text/javascript" src="js/sciat/AnnotationStore.js"></script>
+        <script type="text/javascript" src="js/sciat/Repository.js"></script>
+        <script type="text/javascript" src="js/sciat/Canvas.js"></script>
+        <script type="text/javascript" src="js/sciat/Manifest.js"></script>
+        <script type="text/javascript" src="js/sciat/oac_utils.js"></script>
+        <script type="text/javascript" src="js/sciat/oac_rdf.js"></script>
+        <script type="text/javascript" src="js/sciat/oac_rdfjson.js"></script>        
+        <script type="text/javascript" src="js/sciat/rdf_store.js"></script>  
+        <script type="text/javascript" src="js/sciat/annotationData.js"></script>
+        <style type="text/css">
+            iframe, body, html {
+                height: 100%;
+                width: 100%;
+                position: relative; 
+                margin:0; 
+                padding:0;
+                border: none transparent 0px;
+                box-sizing: border-box;
+            }
+            #annotation_toolbar {
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 32px;
+            }
+            #svg_editor #copyright { /* Respect, but move */
+                position: fixed;
+                bottom: 0;
+                right: 0;
+            }
+        </style>
+<!--Process incoming parameters, if available-->
+        <script type="text/javascript">
+            /*
+             *  Creator (attempt to supply, "unknown" if not possible)
+             *  sciatUsername - authenticated username for annotation creator
+             *  sciatEmail - authenticated email of annotation creator
+             *  
+             *  Layout (missing or incorrect values will corrupt the display, 
+             *  load from the canvas or provide good dimensions for a new canvas)
+             *  canvasRatio - possible single value, assume tool is 1000px tall
+             *  canvasWidth - width of current canvas
+             *  canvasHeight - height of current canvas
+             *  thisImg - encoded URI of image to annotate
+             *  activeCanvas - encoded URI of current canvas (preempts previous)
+             */
+<%
+    // establish js variables for an already authenticated user to pass on
+    if (thisUser != null) {
+        out.println("var sciatUsername = '" + thisUser.getFname() + " " + thisUser.getLname() + "';");
+        out.println("var sciatEmail = '" + thisUser.getUname() + "';");
+    } else {
+        out.println("var sciatUsername = 'unknown';");
+        out.println("var sciatEmail = 'unknown';");
+    }
+%>
+    var canvasRatio, activeCanvas, thisImg;
+    if (getURLParameter("canvasRatio")) {
+        canvasRatio = parseFloat(getURLParameter("canvasRatio"));
+    } else if (getURLParameter("canvasHeight") && getURLParameter("canvasWidth")) {
+        canvasRatio = 100*parseInt(getURLParameter("canvasHeight"))/parseInt(getURLParameter("canvasWidth"))
+    }
+    if (getURLParameter("activeCanvas")) {
+        activeCanvas = decodeURIComponent(getURLParameter("activeCanvas"));
+    } else if (getURLParameter("thisImg")) {
+        thisImg = getURLParameter("thisImg");
+    }
+//    Handlers for buttons; customize to project need. All loading and saving can
+//    be automated. This example uses jQuery, but it is not required.
+//    See annotationData.js for saving and loading options.
+    $(function(){
+        $('#saveAllAnnotations').click(AnnotationData.saveAll);
+        $('#loadAllAnnotations').click(sciatCanvas.displayAnnotations);
+        $('#lightUpAnnotations').click(
+            function(){
+                if ($(this).hasClass('ui-state-active')) {
+                    $(this).removeClass('ui-state-active');
+                    // find annotations within the iframe
+                    $('#annotationTool').contents().find('[uri_ref]')
+                        .attr({
+                            'fill'          : '#000000',
+                            'stroke-width'  : '3.5',
+                            'opacity'       : '.5'
+                        });
+                } else {
+                    $(this).addClass('ui-state-active');
+                    $('#annotationTool').contents().find('[uri_ref]')
+                        .attr({
+                            'fill'          : 'gold',
+                            'stroke-width'  : '10',
+                            'opacity'       : '1'
+                        });
+                }
+            }
+        );
+        $('#goCanvas').click(function(){
+            // manual entry of a new canvas (T-PEN folio number in this case)
+            var newImgUrl = tpenFolio($("#newCanvas")[0].value);
+            reload(newImgUrl);
+        });
+        $('#sciatSplit').find('.frameTab').click(function(event){
+            event.preventDefault();
+            var wrapper = $('#wrapper');
+            if (wrapper.is(':visible')){
+                wrapper.add('#location').hide();
+                $('#tools').width('100%');
+                $(this)
+                    .html('Transcribe<span class="ui-icon ui-icon-close left"></span>')
+                    .attr('title','Return to transcribing');
+            } else {
+                $(this)
+                    .html('Full size<span class="ui-icon ui-icon-arrow-4-diag left"></span>')
+                    .attr('title','Fill the window');
+                    Screen.fullsize(event);
+            }
+        });
+        if (getURLParameter("canvasRatio")) {
+            canvasRatio = parseFloat(getURLParameter("canvasRatio"));
+        } else if (getURLParameter("canvasHeight") && getURLParameter("canvasWidth")) {
+            canvasRatio = 100*parseInt(getURLParameter("canvasHeight"))/parseInt(getURLParameter("canvasWidth"))
+        }
+        if (getURLParameter("activeCanvas")) {
+            activeCanvas = getURLParameter("activeCanvas");
+        } else if (getURLParameter("thisImg")) {
+            thisImg = getURLParameter("thisImg");
+        }
+        if (getURLParameter("imgURL")) {
+            var newImgUrl = tpenFolio(getURLParameter("imgURL"));
+            reload(newImgUrl);
+        }
+    });
+    function reload(imgURL) {
+        var toolFrame = $("#annotationTool");
+        var dummyImg = new Image();
+        $(dummyImg).one('load',function(){
+            var dimensions = "&dimensions="+dummyImg.width/dummyImg.height*1000+","+"1000";
+            var iconsize = "&iconsize=m"; // s,m.l.xl
+            var newSrc = "svg-editor.html?bkgd_url="+encodeURIComponent(imgURL)+dimensions+iconsize;
+            toolFrame[0].src = newSrc+"&no_save_warning=true";
+            $("#sciatSplit").find(".frameReset").attr("href",newSrc+"&no_save_warning=true");
+            $('#loadAllAnnotations').removeAttr('disabled').removeClass('ui-state-disabled').click();
+        }).error(function(){
+            alert ('There was a problem loading this image.\nEither you are not logged in or there was a delivery error. You may try opening the link in another tab.\nThe link used was '+this.src);
+        });
+        dummyImg.src = imgURL;
+    }
+    function tpenFolio(imgURL) {
+        return "http://t-pen.org/TPEN/imageResize?folioNum="+imgURL+"&height=2000";
+    }
+</script>
+<!--
+/*
+ * If this frame is loaded without any parameters, it will attempt to pull 
+ * manifests from the hardcoded sites.
+ * 
+ * To load a specific canvas or image, include as many of the following:
+ * 
+ * activeCanvas - URI, canvas to load
+ * canvasRatio - percent ("%" optional), (speeds loading) height:width of canvas
+ * canvasHeight, canvasWidth - integer, (speeds display loading) to calculate aspect
+ * thisImg - URL, image to annotate when no canvas is available
+ **/        
+-->
+<iframe id="annotationTool" name="sciatFrame" src="js/sciat/images/swirl.gif"></iframe>
+<div id="annotation_toolbar">
+    <button id="saveAllAnnotations" class="listBegin ui-button ui-state-default" title="Save these annotations to the repository">Save
+        <span class="ui-icon ui-icon-disk left"></span>
+    </button>
+    <button id="lightUpAnnotations" class="ui-button ui-state-default" title="Click to increase visibility of annotations" style="width: 75px;">Highlight
+        <span class="ui-icon ui-icon-lightbulb left"></span>
+    </button>
+    <button id="loadAllAnnotations" class="listEnd ui-button ui-state-default" title="Load all available annotations from the repository">Load
+        <span class="ui-icon ui-icon-tag left"></span>
+    </button>
+    <label class="hide">
+        Change Page
+        <input type="text" id="newCanvas" name="newCanvas" placeholder="Enter a TPEN folio #"/>
+        <button id="goCanvas" class="tpenButton">Go</button>
+    </label>
+</div>

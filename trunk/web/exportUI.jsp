@@ -569,7 +569,7 @@ if (request.getParameter("projectID")!=null){
                 </div>
                 <div class="format tpenButton">Exported Page Range</div>
                 <div id="formatMetadata" class="formatDiv">
-                        <div id="pageRange">
+                    <div id="pageRange">
                         <strong>Start with page:</strong><select id='beginFolio' name='beginFolio'></select><br/>
                         <strong>End with page:</strong><select id='endFolio' name='endFolio'></select><br/>
                     </div>
@@ -582,6 +582,12 @@ if (request.getParameter("projectID")!=null){
                         <label id="footnote" for="notesFootnote" title="Show notes after each page of the manuscript"><input id="notesFootnote" type="radio" name="notes" value="footnote" />Footnotes</label><br />
                         <label id="noteRemove" for="notesRemove" title="Remove notes from exported document"><input id="notesRemove" type="radio" name="notes" value="remove" />Remove</label>
                 </div>
+<!--                <div class="format tpenButton">Include Annotations</div>
+                <div id="formatAnnotations" class="formatDiv">
+                        <label id="annoList" for="annosList" title="Include list of annotations at the end of each page"><input id="annosList" type="radio" name="annotations" value="list" />List</label><br />
+                        <label id="annoText" for="annosText" title="Include text only from annotations at the end of each page"><input id="annosText" type="radio" name="annotations" value="text" />Text</label><br />
+                        <label id="annoNone" for="annosNone" title="Exclude annotations from exported document"><input id="annosNone" type="radio" name="annotations" checked value="exclude" />Exclude</label>
+                </div>-->
                 <div class="format tpenButton">Format XML Tags</div>
                 <div id="formatXML" class="formatDiv">
                 <%

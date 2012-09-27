@@ -302,7 +302,7 @@
                    if (Custom.pageNames) $(".exportFolioNumber").show();
                    if (Custom.imageTags) $(".exportFolioImage").show();
                    if (Custom.columnIDs) $(".exportLineNumber").show();
-                   if (!Custom.alternateColors) $(".exportLine").css("background-color","white !important");
+                   if (!Custom.alternateColors) $(".exportLine").css("background-color","white");
                    if (Custom.pagebreakPrint) $(".exportPage").addClass("pagebreak");
                    if (Custom.metadata) $("#metadataPreview").show();
                    // Prepare and style XML tags

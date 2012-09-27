@@ -33,12 +33,10 @@ public Vector<blob> get(String filename)
 }
 public synchronized void add(Vector<blob> b, String filename)
 {
-    if(Runtime.getRuntime().freeMemory()<10000000)
+    if(Runtime.getRuntime().freeMemory()<50000000)
     {
-
-        blobs.remove(blobs.keySet().iterator().next());
-        blobs.remove(blobs.keySet().iterator().next());
-        blobs.remove(blobs.keySet().iterator().next());
+        System.out.print("No space for new cache entry"+filename+"\n");
+        blobs.remove(blobs.keys().nextElement());
         
 
 
@@ -46,5 +44,10 @@ public synchronized void add(Vector<blob> b, String filename)
 
     blobs.put(filename, b);
 
+}
+public void destroy()
+{
+    this.blobs=null;
+    Runtime.getRuntime().gc();
 }
 }

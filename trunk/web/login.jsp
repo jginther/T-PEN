@@ -50,7 +50,9 @@
                 
             else
                 {
-                out.print("<div class=\"error bottom\" onclick=\"style.display = 'none';\" style=\"position:fixed;top:50%;left:42%;display:block;margin:0 auto;z-index:4;\"><p style=\"font-size:2em;\">Incorrect login info!</p><span style=\"color:#ffebb9;\" class=\"small right bottom\">click to dismiss</span></div>");
+                String errorMessage = "Incorrect log in. Try again or <a href='login.jsp'>Request an Account</a>.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
+                return;
                 }
            
        }

@@ -106,11 +106,13 @@ else
         try {
             int uid=0;
             HttpSession session=request.getSession();
-            if (session.getAttribute("UID") == null) {
-                response.sendError(response.SC_FORBIDDEN);
-                return;
-            }
+            try{
             uid=Integer.parseInt(session.getAttribute("UID").toString());
+            }
+            catch(Exception e)
+            {
+                uid=-1;
+            }
             if(request.getParameter("p")!=null)
             {
                 int page=Integer.parseInt(request.getParameter("p"));
@@ -173,7 +175,22 @@ else
 
         }
             }
+            if(request.getParameter("canvas")!=null)
+            {
+                String canvas=request.getParameter("canvas");
 
+        textdisplay.Folio f=new textdisplay.Folio(textdisplay.Folio.getFolioFromCanvas(canvas));
+        Project [] publicProjects=Project.getPublicProjects();
+        for(int i=0;i<publicProjects.length;i++)
+        {
+            String toret=publicProjects[i].getOAC(f.getFolioNumber());
+            if(toret!=null && toret.length()>1)
+            {
+                out.print(toret);
+                return;
+            }
+        }
+            }
         } catch (SQLException ex)
             {
             Logger.getLogger(transcription.class.getName()).log(Level.SEVERE, null, ex);

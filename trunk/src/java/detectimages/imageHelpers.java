@@ -12,8 +12,7 @@
  */
 package detectimages;
 
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
+
 import com.sun.media.jai.codecimpl.TIFFImageDecoder;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
@@ -557,8 +556,7 @@ public static BufferedImage readAsBufferedImage(String filename)
                  return planar.getAsBufferedImage();
                  }
 
-	         JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(fis);
-	         BufferedImage bi = decoder.decodeAsBufferedImage();
+	        BufferedImage bi= ImageIO.read(fis);
 	         return bi;
 	      } catch(Exception e) {
 	         System.out.println(e);
@@ -576,8 +574,8 @@ public static BufferedImage readAsBufferedImage(URL imageURL) {
                  PlanarImage planar = JAI.create("url", imageURL);
                  return planar.getAsBufferedImage();
                  }
-	         JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(imageURL.openStream());
-	         BufferedImage bi = decoder.decodeAsBufferedImage();
+	         
+	         BufferedImage bi= ImageIO.read(imageURL.openStream());
 	         return bi;
 	      } catch(Exception e) {
 	         System.out.println(e);

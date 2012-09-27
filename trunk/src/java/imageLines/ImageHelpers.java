@@ -11,8 +11,7 @@ and limitations under the License.
  */
 package imageLines;
 
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
+
 import com.sun.media.jai.codec.ImageCodec;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -195,8 +194,7 @@ public class ImageHelpers
 	      try
               {
 	          fis=new FileInputStream(filename);
-	         JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(fis);
-	         BufferedImage bi = decoder.decodeAsBufferedImage();
+	         BufferedImage bi= ImageIO.read(fis);
 	         return bi;
 	      }
               catch(Exception e)
@@ -219,8 +217,7 @@ public class ImageHelpers
 	      try
               {
 	         //FileInputStream fis = new FileInputStream(filename);
-	         JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(i);
-	         BufferedImage bi = decoder.decodeAsBufferedImage();
+	         BufferedImage bi= ImageIO.read(i);
 	         return bi;
 	      }
               catch(Exception e)
@@ -246,8 +243,8 @@ public class ImageHelpers
 
                   i=u.getInputStream();
 
-	         JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(i);
-	         BufferedImage bi = decoder.decodeAsBufferedImage();
+	         
+	         BufferedImage bi= ImageIO.read(i);
 	         return bi;
 	      }
               catch(Exception e)
@@ -286,8 +283,8 @@ public class ImageHelpers
  }
                   
                   i=conn.getInputStream();
-	         JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(i);
-                 BufferedImage bi= decoder.decodeAsBufferedImage();
+	         //JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(i);
+                 BufferedImage bi= ImageIO.read(i);//decoder.decodeAsBufferedImage();
 	         return bi;
 	      }
               catch(Exception e)
@@ -356,7 +353,7 @@ HttpHead head=new HttpHead(imageURLString);
 
         httpclient.getCredentialsProvider() .setCredentials(
                 new AuthScope(AuthScope.ANY), 
-                new UsernamePasswordCredentials(user, pass));
+                new UsernamePasswordCredentials(user, pass));   
 
         HttpGet httpget = new HttpGet(imageURLString);
          System.out.println("executing request" + httpget.getRequestLine());
@@ -369,8 +366,8 @@ for(int c=0;c<h.length;c++)
     System.out.print(h[c].getName()+":"+h[c].getValue()+"\n");
 
                   i=response.getEntity().getContent();
-	         JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(i);
-                 BufferedImage bi= decoder.decodeAsBufferedImage();
+	         //JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(i);
+                 BufferedImage bi= ImageIO.read(i);//decoder.decodeAsBufferedImage();
 	         return bi;
 	      }
               catch(Exception e)
@@ -389,7 +386,7 @@ for(int c=0;c<h.length;c++)
 	   }
 public static void main(String [] args)
 {
-    
+    ImageHelpers.readAsBufferedImage("http://stacks.stanford.edu/image/app/kn454rb6080/asn0048-M","dms-access", "5cripts4u");
 }
 	//Save a bufferedimage as a jpg
 	public static void writeImage(BufferedImage img, String filename)

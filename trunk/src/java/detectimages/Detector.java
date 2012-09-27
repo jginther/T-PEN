@@ -34,6 +34,11 @@ import javax.media.jai.PlanarImage;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 
+/**
+ * This is the column and line detector. It is old, so it has a fair amount of
+ * legacy code and some really bad implementation decisions, like using fixed
+ * size arrays in some places to store unknown amounts of data.
+ */
 public class Detector {
 
     public Boolean threeLines;
@@ -69,9 +74,9 @@ public class Detector {
     public Boolean findingCols;
     public Boolean graphical = true;
     public Boolean forceSingle = false;
-    public Boolean changed;//This tracks whether the lines vector has changed since last draw, useful for preventing unneeded redraws
-    public String debugLabel="";
-    public int white=0xffffff;
+    public Boolean changed;//This tracks whether the lines vector has changed since last draw, useful for preventing unneeded redraws of a gui
+    public String debugLabel = "";
+    public int white = 0xffffff;
 
     public Detector(BufferedImage img, BufferedImage bin) {
         columnExclusionDist = 0;
@@ -91,15 +96,6 @@ public class Detector {
         this.bin = bin;
         binstor = new BufferedImage(bin.getWidth(), bin.getHeight(), bin.getType());
         bin.copyData(binstor.getRaster());
-        /*
-        for (int y = 0; y < bin.getHeight(); y++)
-        {
-        for (int x = 0; x < bin.getWidth(); x++)
-        {
-        int rgb = bin.getRGB(x, y);
-        binstor.setRGB(x, y, rgb);
-        }
-        }*/
         startPositions = new Hashtable<Integer, Integer>();
         smeared = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
         goodLines = new int[img.getHeight()];
@@ -130,8 +126,11 @@ public class Detector {
         found++;
         return;
     }
-//Remove the line closest to y in the column that contains x.
 
+    /**
+     * @deprecated Remove the line closest to y in the column that contains x.
+     * This was part of an old gui version of the line detector.
+     */
     public void remline(int y, int x) {
         changed = true;
         int height = 99999;
@@ -158,6 +157,10 @@ public class Detector {
         }
     }
 
+    /**
+     * @deprecated Add a line by splitting the existing line at the specified
+     * location. This was part of an old gui version of the line detector.
+     */
     public void addline(int y, int x) {
         changed = true;
         int height = 99999;
@@ -180,8 +183,10 @@ public class Detector {
 
         }
     }
-    //Remove the line at or below the spot where the user clicked. @deprecated.
 
+    /**
+     * @deprecated This was part of an old gui version of the line detector.
+     */
     public void remline(int oldline) {
         int j;
         int tmp;
@@ -198,6 +203,9 @@ public class Detector {
         }
     }
 
+    /**
+     * @deprecated use imageHelpers.binaryThreshold
+     */
     public BufferedImage threshold(BufferedImage img) {
 
         PlanarImage j = PlanarImage.wrapRenderedImage(img);
@@ -241,8 +249,10 @@ public class Detector {
         int threshold = (int) thresholds[0];
         return (binarize(threshold, j));
     }
-    //Zero the line positions out so we can go again
 
+    /**
+     * Reset the detector state.
+     */
     public void zeroLines() {
         try {
             if (goodCols == null) {
@@ -276,6 +286,9 @@ public class Detector {
         }
     }
 
+    /**
+     * @deprecated use imageHelpers.binaryThreshold
+     */
     private BufferedImage binarize(int threshold, PlanarImage image) {
         // Binarizes the original image.
         if (threshold > 5) {
@@ -288,8 +301,12 @@ public class Detector {
         PlanarImage thresholdedImage = JAI.create("binarize", pb);
         return thresholdedImage.getAsBufferedImage();
     }
-    //Smear the image horizontally, any areas with pixels close together horizontally will have the space between them filled in with black.
 
+    /**
+     * Smear the image horizontally, any areas with pixels close together
+     * horizontally (withing max_dist pixels of eachother) will have the space
+     * between them filled in with black.
+     */
     public int smear(int max_dist) {
         //if(true)return 1;
         smeared = this.bin.getSubimage(0, 0, this.bin.getWidth(), this.bin.getHeight());
@@ -323,6 +340,11 @@ public class Detector {
         return 0;
     }
 
+    /**
+     * Smear the image horizontally, any areas with pixels close together
+     * horizontally (withing max_dist pixels of eachother) will have the space
+     * between them filled in with black.
+     */
     public int vsmear(int max_dist, BufferedImage onlySmearedPortions) {
         smeared = bin.getSubimage(0, 0, bin.getWidth(), bin.getHeight());
         int thresh = -1700000;
@@ -355,224 +377,129 @@ public class Detector {
                 }
             }
         }
-        if(debugLabel.length()>1)
-        imageHelpers.writeImage(this.bin, "/usr/debugImages/smeared"+debugLabel);
+        if (debugLabel.length() > 1) {
+            imageHelpers.writeImage(this.bin, "/usr/debugImages/smeared" + debugLabel);
+        }
         return 0;
     }
-    //Find the 4 corners of each line based on the smeared blob of text, so the slope can be determined.
 
-    public void redCorners(BufferedImage smeared) {
-        int firstMember = goodLines[0];
-        int x, y;
-        int height;
-        int upperLeftX, upperLeftY;
-        int upperRightX, upperRightY;
-        for (int j = 0; j < found && goodLines[j] != 0; j++) {
-            firstMember = goodLines[j];
-            x = smeared.getWidth() / 2;
-
-            y = firstMember - 2;
-            //in order to look for the height of the blob at its center, we must ensure that there are black pixels there, if not, move to the center of the leftmost half and check again (this might be a partial line)
-            for (int i = 0; i < 5; i++) {
-                if (smeared.getRGB(x, y) == -1) {
-                    break;
-                } else {
-                    x = x / 2;
-                }
-            }
-            //If we cant find the text on the left side, try the right
-            if (!(smeared.getRGB(x, y) == -1)) {
-                double divisor = .75;
-                x = (int) (smeared.getWidth() * divisor);
-                for (int i = 0; i < 5; i++) {
-                    if (smeared.getRGB(x, y) == -1) {
-                        break;
-                    } else {
-                        divisor += .05;
-                        System.out.println(smeared.getRGB(x, y));
-                    }
-                }
-            }
-            //If we cant find the text at all, give up
-            if (!(smeared.getRGB(x, y) == -1)) {
-                System.out.print("Didnt find black");
-            } else {
-                //Find the height of the blob at the center of the line of text.
-                for (height = 1; y > 0 && smeared.getRGB(x, y) == -1; height++) {
-                    y--;
-                }
-                //Now that we know the height of the line, lets look for the upper left
-                //The procedure is move left as far as possible, then move up as far as possible, then repeat until we dont move at all
-                Boolean progress = true;
-                upperLeftX = x;
-                upperLeftY = y;
-                while (progress == true) {
-                    progress = false;
-                    //move left
-                    for (; upperLeftX > 0 && smeared.getRGB(upperLeftX, upperLeftY) < -1700000; upperLeftX--) {
-                        progress = true;
-                    }
-                    for (; upperLeftY > 0 && smeared.getRGB(upperLeftX, upperLeftY) < -1700000; upperLeftY++) {
-                        progress = true;
-                    }
-                }
-                System.out.println(upperLeftX + "," + upperLeftY);
-                upperRightX = x;
-                upperRightY = y;
-                while (progress) {
-                    progress = false;
-                    //move left
-                    for (; upperRightX < smeared.getWidth() && smeared.getRGB(upperRightX, upperRightY) < -1700000; upperRightX++) {
-                        progress = true;
-                    }
-                    for (; upperRightY > 0 && smeared.getRGB(upperRightX, upperRightY) < -1700000; upperRightY--) {
-                        progress = true;
-                    }
-                }
-                System.out.println(upperRightX + "," + upperRightY);
-                System.out.println("slope: " + (double) (upperLeftX - upperRightX) / (double) (upperLeftY - upperRightY));
-            }
-        }
-    }
-    //Search for a border around the image of the manuscript, not implemented yet
-
-    public void findGray() {
-        for (int i = 0; i < img.getWidth(); i++) {
-            for (int j = 0; j < img.getHeight(); j++) {
-            }
-        }
-    }
-
-    //Use this findlines method to subdivide the image that is passed in into subdivisions pieces, find lines in each of them, then join the
-    //findings into one set of lines that dont duplicate any lines. thisImage must be binarized but not smeared
+    /**
+     * Use this findlines method to subdivide the image that is passed in into
+     * subdivisions pieces, find lines in each of them, then join the findings
+     * into one set of lines that dont duplicate any lines. thisImage must be
+     * binarized but not smeared
+     */
     public BufferedImage findLines(int subdivisions, BufferedImage thisImage) {
         //displayImage (thisImage);
-        BufferedImage toreturn = copyBufferedimage(thisImage);
-        try{
-        int[][] results = new int[subdivisions][100];
-        int dist = 0;
-        
-        for (int i = 0; i < subdivisons; i++) {
-            Detector j = new Detector(toreturn.getSubimage(toreturn.getWidth() / subdivisons * i, 0, toreturn.getWidth() / subdivisions, toreturn.getHeight()), toreturn.getSubimage(toreturn.getWidth() / subdivisions * i, 0, toreturn.getWidth() / subdivisions, toreturn.getHeight()));
-            j.hsmearDist = hsmearDist;
-            j.vsmearDist = vsmearDist;
-            j.findLines();
-            for (int k = 0; k < j.found; k++) {
-                results[i][k] = j.goodLines[k];
-                dist = j.mean_dist;
+        BufferedImage toreturn = imageHelpers.cloneBufferedImage(thisImage);
+        try {
+            int[][] results = new int[subdivisions][100];
+            int dist = 0;
+
+            for (int i = 0; i < subdivisons; i++) {
+                Detector j = new Detector(toreturn.getSubimage(toreturn.getWidth() / subdivisons * i, 0, toreturn.getWidth() / subdivisions, toreturn.getHeight()), toreturn.getSubimage(toreturn.getWidth() / subdivisions * i, 0, toreturn.getWidth() / subdivisions, toreturn.getHeight()));
+                j.hsmearDist = hsmearDist;
+                j.vsmearDist = vsmearDist;
+                j.findLines();
+                for (int k = 0; k < j.found; k++) {
+                    results[i][k] = j.goodLines[k];
+                    dist = j.mean_dist;
+                }
             }
+            int[] tmp;
+            if (subdivisons == 1) {
+                tmp = results[0];
+            } else {
+                tmp = this.mergeColumnPortions(results[0], results[1], results[2], toreturn.getWidth() / subdivisions);
+            }
+            for (int i = 0; tmp[i] > 0; i++) {
+                lines.add(new line(toreturn.getWidth(), 0, tmp[i], dist));
+            }
+        } catch (Exception e) {
         }
-        int[] tmp;
-        if (subdivisons == 1) {
-            tmp = results[0];
-        } else {
-            tmp = this.mergeColumnPortions(results[0], results[1], results[2], toreturn.getWidth() / subdivisions);
-        }
-        //mark the good lines on toreturn
-		/*for(int k=0;k<subdivisions;k++)
-        for(int i=0;results[k][i]>0;i++)
-        {
-        for(int j=0;j<toreturn.getWidth();j++)
-        //toreturn.setRGB(j, i, 0xff0000);
-        lines.add(new line(toreturn.getWidth(),0,results[k][i]));
-        }
-         */
-        for (int i = 0; tmp[i] > 0; i++) {
-            //for(int j=0;j<toreturn.getWidth();j++)
-            //toreturn.setRGB(j, i, 0xff0000);
-            lines.add(new line(toreturn.getWidth(), 0, tmp[i], dist));
-        }
-        }
-        catch(Exception e)
-        {}
         //System.out.println(subdivisons+"in");
         return toreturn;
     }
-    //This handles searching for lines within the image, and removes lines that are too close together or too far away to be reasonable. Calculates the mean distance between elements as well.
+    /**This handles searching for lines within the image, and removes lines that are too close together or too far away to be reasonable. Calculates the mean distance between elements as well.*/
 
     public void findLines() {
-        //BufferedImage img=smeared;
-        try{
-        BufferedImage onlySmearedPortions=imageHelpers.cloneBufferedImage(bin);
-        if (true) {
-            for (int i = 1; i < smeared.getWidth() - 1; i++) {
+        try {
+            BufferedImage onlySmearedPortions = imageHelpers.cloneBufferedImage(bin);
+            if (true) {
+                for (int i = 1; i < smeared.getWidth() - 1; i++) {
 
-                for (int j = 0; j < smeared.getHeight() - 1; j++) {
-                    {
-                        onlySmearedPortions.setRGB(i, j, white);
+                    for (int j = 0; j < smeared.getHeight() - 1; j++) {
+                        {
+                            onlySmearedPortions.setRGB(i, j, white);
+                        }
                     }
                 }
             }
-        }
-        smear(hsmearDist);
-        vsmear(vsmearDist,onlySmearedPortions);
-        //displayImage(smeared);
-        smear(hsmearDist);
-        int i, j;
-        long[] means = new long[smeared.getHeight()];
-        long meanTabulator = 0;
-        found = 0;
-        int[] lines = new int[smeared.getHeight()];
-        linesTop = new int[smeared.getHeight()];
-        long meanOfMeans = 0;
-        //Findnegative indicates whether we are looking for a dark area right now or a light area. true=light. Once we find one, start looking for the other
-        Boolean findingNegative = true;
-        for (i = 1; i < smeared.getHeight() - 1; i++) {
-            meanTabulator = 0;
-            for (j = 0; j < smeared.getWidth(); j++) {
-                meanTabulator += smeared.getRGB(j, i);
+            smear(hsmearDist);
+            vsmear(vsmearDist, onlySmearedPortions);
+            smear(hsmearDist);
+            int i, j;
+            long[] means = new long[smeared.getHeight()];
+            long meanTabulator = 0;
+            found = 0;
+            int[] lines = new int[smeared.getHeight()];
+            linesTop = new int[smeared.getHeight()];
+            long meanOfMeans = 0;
+            //Findnegative indicates whether we are looking for a dark area right now or a light area. true=light. Once we find one, start looking for the other
+            Boolean findingNegative = true;
+            for (i = 1; i < smeared.getHeight() - 1; i++) {
+                meanTabulator = 0;
+                for (j = 0; j < smeared.getWidth(); j++) {
+                    meanTabulator += smeared.getRGB(j, i);
+                }
+                means[i] = meanTabulator / smeared.getWidth();
+                meanOfMeans += means[i];
             }
-            means[i] = meanTabulator / smeared.getWidth();
-            meanOfMeans += means[i];
-        }
-        meanOfMeans = meanOfMeans / i;
-        for (i = 1; i < smeared.getHeight() - 3; i++) {
-            if (findingNegative && means[i] < meanOfMeans && means[i + 1] < meanOfMeans && means[i + 2] < meanOfMeans) {
-                findingNegative = !findingNegative;
-                linesTop[found] = i;
-                //System.out.println(means[i]+" is than 0");
-            } else if (!findingNegative && means[i] > meanOfMeans && means[i + 1] > meanOfMeans && means[i + 2] > meanOfMeans) //If we are looking for a dark area, and this is one, this is a line of text.
-            {
-                //System.out.println(means[i]+" is smaller than 0");
-                lines[found] = i;
+            meanOfMeans = meanOfMeans / i; //mean line height
+            for (i = 1; i < smeared.getHeight() - 3; i++) {
+                if (findingNegative && means[i] < meanOfMeans && means[i + 1] < meanOfMeans && means[i + 2] < meanOfMeans) {
+                    findingNegative = !findingNegative;
+                    linesTop[found] = i;
+                } else if (!findingNegative && means[i] > meanOfMeans && means[i + 1] > meanOfMeans && means[i + 2] > meanOfMeans) //If we are looking for a dark area, and this is one, this is a line of text.
+                {
+                    lines[found] = i;
+                    found++;
+                    //Just inverts findingNegative
+                    findingNegative = !findingNegative;
+                }
+            }
+            mean_dist = 0;
+            for (i = 1; i < smeared.getWidth() && lines[i] != 0; i++) {
+                mean_dist += lines[i] - lines[i - 1];
                 found++;
-                //Just inverts findingNegative
-                findingNegative = !findingNegative;
             }
-        }
-        mean_dist = 0;
-        for (i = 1; i < smeared.getWidth() && lines[i] != 0; i++) {
-            mean_dist += lines[i] - lines[i - 1];
-            found++;
-        }
-        mean_dist = mean_dist / found;
-        found = 0;
-        for (i = 0; i < smeared.getWidth() && lines[i ] != 0; i++) {
-            //if (lines[i + 1] - lines[i] < 4 * mean_dist && lines[i + 1] - lines[i] > mean_dist * .5) {
+            mean_dist = mean_dist / found;
+            found = 0;
+            for (i = 0; i < smeared.getWidth() && lines[i] != 0; i++) {
+                //use this if to attempt to exclude lines that are very different in height from the norm.
+                //if (lines[i + 1] - lines[i] < 4 * mean_dist && lines[i + 1] - lines[i] > mean_dist * .5) {
                 goodLines[found] = lines[i];
                 linesTop[found] = linesTop[i];
                 found++;
-            //} else {
+                //} else {
                 //Can be used to monitor the lines that were excluded by the above criterea
                 //System.out.print("skipping "+i+"\n");
-            //}
-        }
+                //}
+            }
 //        goodLines[found] = (int) (lines[i]);
- //       linesTop[found] = linesTop[i];
-        //found++;
-        }
-        catch(Exception e)
-        {
+            //       linesTop[found] = linesTop[i];
+            //found++;
+        } catch (Exception e) {
             System.out.print(e.toString());
         }
     }
-
+    /**Run line and column detection*/
     public void detect() {
         //create a copy of bin that wont be modified during the column search,
         //so the line search has a clean copy to work on
 
 
-        BufferedImage onlySmearedPortions=imageHelpers.cloneBufferedImage(bin);
+        BufferedImage onlySmearedPortions = imageHelpers.cloneBufferedImage(bin);
         if (true) {
             for (int i = 1; i < smeared.getWidth() - 1; i++) {
 
@@ -584,8 +511,9 @@ public class Detector {
             }
         }
         //bin=imageHelpers.binaryThreshold(img, 0, true);
-        if(debugLabel.compareTo("")!=0)
-            imageHelpers.writeImage(bin, "/usr/debugImages/"+debugLabel+"_binarized.jpg");
+        if (debugLabel.compareTo("") != 0) {
+            imageHelpers.writeImage(bin, "/usr/debugImages/" + debugLabel + "_binarized.jpg");
+        }
         binstor = imageHelpers.cloneBufferedImage(bin);//imageHelpers.binaryThreshold(img, 0);
 
         if (graphical) {
@@ -596,17 +524,10 @@ public class Detector {
 
         }
         findingCols = true;
-        vsmear(vsmearColDist * 2,bin);
-        //smear(hsmearColDist);
-       // Vector<rectangle> potentialColumns=xycut.segment(bin);
-        
-      
+        vsmear(vsmearColDist * 2, bin);
         smear(hsmearColDist);
-        vsmear(vsmearColDist * 2,onlySmearedPortions);
-        bin=onlySmearedPortions;
-
-        //smear(hsmearColDist);
-
+        vsmear(vsmearColDist * 2, onlySmearedPortions);
+        bin = onlySmearedPortions;
         goodCols = new int[2000];
         colsStart = new int[2000];
         int i, j;
@@ -635,12 +556,12 @@ public class Detector {
         meanOfMeans = meanOfMeans / i;
         line l = new line();
         for (i = 1; i < smeared.getWidth() - 3; i++) {
-            if (findingNegative && means[i] < meanOfMeans ) { //&& means[i + 1] < meanOfMeans
+            if (findingNegative && means[i] < meanOfMeans) { //&& means[i + 1] < meanOfMeans
                 findingNegative = !findingNegative;
                 colsStart[found] = i;
                 l = new line();
                 l.setStartHorizontal(i);
-            } else if (!findingNegative && means[i] > meanOfMeans )//&& means[i + 1] > meanOfMeans) //If we are looking for a dark area, and this is one, this is a line of text.
+            } else if (!findingNegative && means[i] > meanOfMeans)//&& means[i + 1] > meanOfMeans) //If we are looking for a dark area, and this is one, this is a line of text.
             {
                 cols[found] = i;
                 found++;
@@ -656,11 +577,14 @@ public class Detector {
                 findingNegative = !findingNegative;
             }
         }
-        /*Is there a column on the left or on the right that is consistent with a portion of the previous or next page being
-        included in the image? If so, crop out that column in both img and bin, and rerun this process.
+        /*
+         * Is there a column on the left or on the right that is consistent with
+         * a portion of the previous or next page being included in the image?
+         * If so, crop out that column in both img and bin, and rerun this
+         * process.
          */
         //TODO add border column removal
-        
+
         linectr = 0;
 
         //Find lines in the left, center, and right of the column.
@@ -691,122 +615,68 @@ public class Detector {
             columns.add(tmpLine);
         }
 
-        bin=imageHelpers.cloneBufferedImage(binstor);
-          /* columns = new Vector();
-
-        for(int i=0;i<potentialColumns.size();i++)
-        {
-            line tmpLine = new line();
-            rectangle r=potentialColumns.elementAt(i);
-            tmpLine.setStartHorizontal(r.x);
-            tmpLine.setStartVertical(r.y);
-            tmpLine.setWidth(r.x1-r.x);
-            tmpLine.setDistance(r.y1-r.y);
-            columns.add(tmpLine);
-        }*/
-            //line l=new line();
-            for (int ctr = 0; ctr < columns.size(); ctr++) {
+        bin = imageHelpers.cloneBufferedImage(binstor);
+        /*
+         * columns = new Vector();
+         *
+         * for(int i=0;i<potentialColumns.size();i++) { line tmpLine = new
+         * line(); rectangle r=potentialColumns.elementAt(i);
+         * tmpLine.setStartHorizontal(r.x); tmpLine.setStartVertical(r.y);
+         * tmpLine.setWidth(r.x1-r.x); tmpLine.setDistance(r.y1-r.y);
+         * columns.add(tmpLine);
+        }
+         */
+        //line l=new line();
+        for (int ctr = 0; ctr < columns.size(); ctr++) {
             l = columns.get(ctr);
             //is this a good column or a page margin?
             //if width is > height or the column width is less than 1/8 of the page width exclude it
-            if(l.getWidth()<l.getDistance() && l.getWidth()>bin.getWidth()/8)
-            {
-            //System.out.print("column is:" + l.getStartHorizontal() + "," + l.getWidth() + "," + l.getStartVertical() + "," + l.getDistance() + "\n");
-            BufferedImage thisColumnOnly = img.getSubimage(l.getStartHorizontal(), l.getStartVertical(), l.getWidth(), l.getDistance());
-            BufferedImage thisColumnOnlyBin = binstor.getSubimage(l.getStartHorizontal(), l.getStartVertical(), l.getWidth(), l.getDistance());
-            if(debugLabel.compareTo("")!=0)
-            imageHelpers.writeImage(thisColumnOnlyBin, "/usr/debugImages/"+debugLabel+"_col"+ctr+".jpg");
-            Detector colLines = new Detector(thisColumnOnly, thisColumnOnlyBin);
-            colLines.hsmearDist = this.hsmearDist;
-            colLines.subdivisons = subdivisons;
-            colLines.vsmearDist = this.vsmearDist;
-            colLines.findLines(3, thisColumnOnlyBin);
-            //System.out.print("found "+ colLines.lines.size()+" lines\n" );
+            if (l.getWidth() < l.getDistance() && l.getWidth() > bin.getWidth() / 8) {
+                //System.out.print("column is:" + l.getStartHorizontal() + "," + l.getWidth() + "," + l.getStartVertical() + "," + l.getDistance() + "\n");
+                BufferedImage thisColumnOnly = img.getSubimage(l.getStartHorizontal(), l.getStartVertical(), l.getWidth(), l.getDistance());
+                BufferedImage thisColumnOnlyBin = binstor.getSubimage(l.getStartHorizontal(), l.getStartVertical(), l.getWidth(), l.getDistance());
+                if (debugLabel.compareTo("") != 0) {
+                    imageHelpers.writeImage(thisColumnOnlyBin, "/usr/debugImages/" + debugLabel + "_col" + ctr + ".jpg");
+                }
+                Detector colLines = new Detector(thisColumnOnly, thisColumnOnlyBin);
+                colLines.hsmearDist = this.hsmearDist;
+                colLines.subdivisons = subdivisons;
+                colLines.vsmearDist = this.vsmearDist;
+                colLines.findLines(3, thisColumnOnlyBin);
+                //System.out.print("found "+ colLines.lines.size()+" lines\n" );
 
-            Iterator<line> e = colLines.lines.iterator();
-            if (colLines.lines.size() >= minLinesPerCol) {
-                for(int k=0;k<colLines.lines.size();k++)
-                {
-                    line thisLine = colLines.lines.elementAt(k);
-                    thisLine.setStartHorizontal(thisLine.getStartHorizontal() + l.getStartHorizontal());
-                    thisLine.setStartVertical(thisLine.getStartVertical()+l.getStartVertical());
-                    //System.out.print(thisLine.getWidth()+"\n");
-                    lines.add(thisLine);
+                Iterator<line> e = colLines.lines.iterator();
+                if (colLines.lines.size() >= minLinesPerCol) {
+                    for (int k = 0; k < colLines.lines.size(); k++) {
+                        line thisLine = colLines.lines.elementAt(k);
+                        thisLine.setStartHorizontal(thisLine.getStartHorizontal() + l.getStartHorizontal());
+                        thisLine.setStartVertical(thisLine.getStartVertical() + l.getStartVertical());
+                        //System.out.print(thisLine.getWidth()+"\n");
+                        lines.add(thisLine);
+                    }
                 }
             }
-            }
         }
-        if(debugLabel.compareTo("")!=0)
-            imageHelpers.writeImage(bin, "/usr/debugImages/"+debugLabel+"_last_step.jpg");
-        
+        if (debugLabel.compareTo("") != 0) {
+            imageHelpers.writeImage(bin, "/usr/debugImages/" + debugLabel + "_last_step.jpg");
+        }
+
         colLinesWithWidth = new int[2000];
         findingCols = false;
         changed = true;
     }
 
-    public line findNaturalHorizontalBorders(line l, BufferedImage b) {
-        //assume b is smeared properly already for now
-        for (int i = 0; i < b.getWidth(); i++) {
-            int count = 0;
-
-            for (int j = l.getStartVertical(); j < (l.getStartVertical() + l.getDistance()); j++) {
-                //count black pixels
-                //System.out.print(b.getRGB(i, j)+"val\n");
-                if (b.getRGB(i, j) < -1) {
-                    count++;
-
-                }
-            }
-            System.out.print(count + " ");
-            //i=99999;
-            }
-        return l;
-    }
-
-    private BufferedImage copyBufferedimage(BufferedImage img) {
-        if (true) {
-            return img;
-        }
-        BufferedImage copy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
-        for (int i = 0; i < img.getHeight() - 1; i++) {
-            for (int j = 0; j < img.getWidth() - 1; j++) {
-                copy.setRGB(j, i, img.getRGB(j, i));
-            }
-        }
-        return copy;
-    }
-    //Merges 2 arrays
-
-    private int[] mergeArrays(int[] a, int[] b) {
-        int[] toret = new int[a.length + b.length];
-        int newArrayCtr = 0;
-        for (int i = 0; i < a.length; i++) {
-            if (a[i] == 0) {
-                break;
-            }
-            toret[newArrayCtr] = a[i];
-            newArrayCtr++;
-        }
-        for (int i = 0; i < b.length; i++) {
-            if (b[i] == 0) {
-                break;
-            }
-            toret[newArrayCtr] = b[i];
-            newArrayCtr++;
-        }
-        return toret;
-    }
-    //Take the lines from the 3 subcolumns and combines them to create a single array of lines, without duplicates
+    /**Take the lines from the 3 subcolumns and combines them to create a single array of lines, without duplicates*/
 
     private int[] mergeColumnPortions(int[] a, int[] b, int[] c, int colwidth) {
         try {
             FileWriter f = new FileWriter(new File("/usr/log.txt"));
-            f.append("Merging with lengths "+a.length+" "+b.length+" and "+c.length+"\n");
+            f.append("Merging with lengths " + a.length + " " + b.length + " and " + c.length + "\n");
         } catch (IOException ex) {
             Logger.getLogger(Detector.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        
+
         int[] newListing = new int[2000];
         int finalLineCount = 0;
         int nexta = 0;
@@ -814,8 +684,9 @@ public class Detector {
         int nextc = 0;
         float slope_insanity_num = (float) 75.0;
         /*
-         * The lowest number for vertical position is definitely the next line. The trick after finding it,
-         * is to determine whether the other 2 current line positions are part of the same line, part of a different
+         * The lowest number for vertical position is definitely the next line.
+         * The trick after finding it, is to determine whether the other 2
+         * current line positions are part of the same line, part of a different
          * line, or the entirety of a different line.
          *
          */
@@ -925,7 +796,7 @@ public class Detector {
             System.out.println(e);
         }
     }
-    //Recalculate the mean distance between lines based on the lines we currently have, presumably some have been added or removed
+    /**@deprecated recalculated the mean line height. Was used by the old gui program */
 
     public void recalcMeanDist() {
         int i;
@@ -934,7 +805,7 @@ public class Detector {
         }
         mean_dist = mean_dist / found;
     }
-    //Save a subimage centered at each of the line numbers in goodLines. Pageno is only used for building the filename
+    /** @deprecated Save a subimage centered at each of the line numbers in goodLines. Pageno is only used for building the filename. Part of the old gui program.*/
 
     public void commit(int pageno) {
         int printer = 0;
@@ -987,7 +858,7 @@ public class Detector {
             }
         }
     }
-    //Save a subimage centered at each of the line numbers in goodLines. Pageno is only used for building the filename
+    /** @deprecated  Save a subimage centered at each of the line numbers in goodLines. Pageno is only used for building the filename. This was part of the gui program.*/
 
     public void commit(int pageno, Boolean newMethod) {
         int thiscol = 99991;
@@ -1010,8 +881,7 @@ public class Detector {
 
         }
     }
-    //just like on Sesame Street. We have count items in the array, we need desiredCount, the mean distance between items was previously found.
-    //Because we have too many, look for the 2 closest together and remove them as many times as needed. Guaranteed to return the desired number of elements.
+    /**@deprecated This was designed for cases where the number of lines to expect was specified. It trimmed out the least likely lines. */
 
     public int[] trimList(int[] goodLines, int count, int desiredCount) {
 

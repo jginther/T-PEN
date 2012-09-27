@@ -40,6 +40,18 @@ import textdisplay.Transcription;
  */
 public class TranscriptionIndexer
 {
+   public static void main(String [] args)
+    {
+        try {
+            new TranscriptionIndexer();
+        } catch (SQLException ex) {
+            Logger.getLogger(TranscriptionIndexer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (CorruptIndexException ex) {
+            Logger.getLogger(TranscriptionIndexer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(TranscriptionIndexer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
     /**
      * Build/rebuild the transcription search index from scratch
      * @throws SQLException

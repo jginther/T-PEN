@@ -19,6 +19,7 @@ import com.hp.hpl.jena.rdf.model.RDFList;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -522,6 +523,33 @@ public class Project {
     /**Get all projects with public read access ordered by project name*/
     public static Project[] getPublicProjects() throws SQLException {
         String query = "select distinct(project.id) from project join ProjectPermissions on project.id=ProjectPermissions.projectID where ProjectPermissions.allow_public_read_transcription=true order by project.name desc";
+        Connection j = null;
+        PreparedStatement ps = null;
+        try {
+            j = DatabaseWrapper.getConnection();
+            ps = j.prepareStatement(query);
+
+            ResultSet rs = ps.executeQuery();
+            Stack<Integer> projectIDs = new Stack();
+            while (rs.next()) {
+                projectIDs.push(rs.getInt("project.id"));
+            }
+            Project[] toret = new Project[projectIDs.size()];
+            int ctr = 0;
+            while (!projectIDs.empty()) {
+                toret[ctr] = new Project(projectIDs.pop());
+                ctr++;
+            }
+            return toret;
+        } finally {
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
+        }
+    }
+
+    /**Get all projects ordered by project name*/
+    public static Project[] getAllProjects() throws SQLException {
+        String query = "select distinct(project.id) from project order by project.name desc";
         Connection j = null;
         PreparedStatement ps = null;
         try {
@@ -1124,6 +1152,27 @@ public class Project {
         return toret;
     }
 
+    /**Return a count of lines transcribed*/
+    public int getNumberOfTranscribedLines() throws SQLException {
+        int toret = 0;
+        String query = "select count(id) from transcription where projectID=? and text!=''";
+        Connection j = null;
+        PreparedStatement ps = null;
+        try {
+            j = DatabaseWrapper.getConnection();
+            ps = j.prepareStatement(query);
+            ps.setInt(1, projectID);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                toret ++;
+            }
+        } finally {
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
+        }
+        return toret;
+    }
+
     public void setGroupID(int id) {
         groupID = id;
     }
@@ -1217,6 +1266,32 @@ public class Project {
             all[tmp.size() - 1] = tmp.pop();
         }
         return all;
+    }
+
+    /**Returns all projects updated in the last 2 months, or null if none*/
+    public static Project[] getAllActiveProjects() throws SQLException {
+        Project[] active;
+        String query = "SELECT DISTINCT projectid FROM transcription WHERE DATE > ( NOW( ) + INTERVAL -2 MONTH )";
+        Connection j = null;
+        PreparedStatement ps = null;
+        Stack<Project> tmp = new Stack();
+        try {
+            j = DatabaseWrapper.getConnection();
+            ps = j.prepareStatement(query);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                tmp.push(new Project(rs.getInt(1)));
+            }
+        } finally {
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
+        }
+        active = new Project[tmp.size()];
+        //odd looking way of doing this copy, I know, but it was convenient
+        while (!tmp.empty()) {
+            active[tmp.size() - 1] = tmp.pop();
+        }
+        return active;
     }
 
     /**Build a new Project with the values stored herein, useful when using this class as a bean*/
@@ -1313,9 +1388,10 @@ public class Project {
 
     }
 
-    /**returns -1 if an eror occurs, probably due to deletion.*/
+    /**returns -1 if an error occurs, probably due to deletion.*/
     public int firstPage() throws SQLException {
         try {
+            // @TODO:  If there're no folios, this throws an ArrayIndexOutOfBoundsException.
             return this.getFolios()[0].getFolioNumber();
         } //can be null if the Project was deleted
         catch (NullPointerException e) {
@@ -1347,66 +1423,17 @@ public class Project {
 /**Build OAC annotations our of the lines transcription*/
     public String getOAC(int folioNumber) throws SQLException {
         String toret = "";
-        Manuscript ms = new Manuscript(folioNumber);
         Model model = ModelFactory.createDefaultModel();
-        model.setNsPrefix("dms", "http://dms.stanford.edu/ns/");
-        model.setNsPrefix("oac", "http://www.openannotation.org/ns/");
-        model.setNsPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-        model.setNsPrefix("ore", "http://www.openarchives.org/ore/terms/");
-        model.setNsPrefix("cnt", "http://www.w3.org/2008/content#");
-        model.setNsPrefix("dc", "http://purl.org/dc/elements/1.1/");
-        model.setNsPrefix("dcterms", "http://purl.org/dc/terms/");
-
-        Folio f = new Folio(folioNumber);
         Transcription[] transcriptions = Transcription.getProjectTranscriptions(projectID, folioNumber);
-        Resource transc = model.createResource("http://dms.stanford.edu/ns/TranscriptionAnnotation");
-        Property transcriptionProperty = model.createProperty("http://dms.stanford.edu/ns/", "TranscriptionAnnotation");
-        Property oacTarget = model.createProperty("http://www.openannotation.org/ns/", "hasTarget");
-        Property oacBody = model.createProperty("http://www.openannotation.org/ns/", "hasBody");
-        Property contentChars = model.createProperty("http://www.w3.org/2008/content#", "chars");
-        Property rdfType = model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "type");
-        Resource viewFrag = model.createResource("http://www.openannotation.org/ns/Annotation");
-        Property isPartOf = model.createProperty("http://purl.org/dc/terms/", "isPartOf");
-        Resource fullImage = model.createResource("http://t-pen.org/views/" + folioNumber);
-
-        String[] uuids = new String[transcriptions.length];
-        Resource thisPage = model.createResource("http://t-pen.org/transcription/" + folioNumber);
-        Resource[] items = new Resource[uuids.length];
-        Property aggregates = model.createProperty("http://www.openarchives.org/ore/terms/", "aggregates");
-
         for (int i = 0; i < transcriptions.length; i++) {
-            //uuids[i] = java.util.UUID.randomUUID().toString();
-            //Resource item = model.createResource("urn:uuid:" + uuids[i]);
-            //items[i] = item;
-            //  StringWriter tmp=new StringWriter();
-            //  model.write(tmp);
-            // toret+=uuids[i]+" should be last\n"+tmp.toString()+"\n";
+        StringReader r=new StringReader(transcriptions[i].getAsOAC());
+        model.read(r,"");
+        
         }
-        toret += "list:\n";
-        //    RDFList l = model.createList(items);
-
-        for (int i = 0; i < transcriptions.length; i++) {
-            String uuid = uuids[i];
-            Resource item = model.createResource("http://t-pen.org/annotations/" + transcriptions[i].getLineID());
-            /**
-             * @TODO change to use Transcription.getProjectTranscriptions
-             */
-            thisPage.addProperty(aggregates, item);
-            Resource thisLine = model.createResource("http://t-pen.org/transcription/" + transcriptions[i].getLineID());
-            String xyhw = "#xyhw=" + transcriptions[i].getX() + ", " + transcriptions[i].getY() + ", " + transcriptions[i].getHeight() + ", " + transcriptions[i].getWidth();
-            Resource image = model.createResource(f.getArchiveLink());//+"#xyhw="+xyhw);
-            Literal text = model.createLiteral(transcriptions[i].getText());
-            item.addProperty(oacBody, thisLine);
-            item.addProperty(oacTarget, image + xyhw);
-            item.addProperty(rdfType, transc);
-            image.addProperty(rdfType, viewFrag);
-            image.addProperty(oacTarget, fullImage);
-            thisLine.addProperty(contentChars, text);
-        }
-        StringWriter tmp = new StringWriter();
-        model.write(tmp, "N3");
-        toret += tmp.getBuffer().toString();
-        return toret;
+        StringWriter w=new StringWriter();
+        model.write(w,"N3");
+        
+        return w.toString();
     }
 
     /**@Depricated this code needs to be updated to build a sequence after the changes to OAC*/
@@ -1494,10 +1521,10 @@ public class Project {
         return toret.toString();
     }
 
-    /**Retrieve the requested number of Project comments in order by date.*/
-    public String getProjectLog(int firstRecord, int recordCount) throws SQLException {
+    /**Retrieve the requested number of Project comments in order by date, from date.*/
+    public String getProjectLog(int recordCount, int firstRecord) throws SQLException {
         String query = "select content,creationDate,uid from projectLog where projectID=? order by creationDate desc limit ?,?";
-        StringBuffer toret = new StringBuffer("");
+        StringBuilder toret = new StringBuilder("");
         Connection j = null;
         PreparedStatement qry = null;
         try {
@@ -1523,7 +1550,10 @@ public class Project {
         }
         return toret.toString();
     }
-
+    /**Retrieve the requested number of Project comments in order by date.*/
+    public String getProjectLog(int recordCount) throws SQLException {
+        return getProjectLog(recordCount, 0);
+    }
     public String getSchemaURL() throws SQLException {
         String toret = "";
         Connection j = null;

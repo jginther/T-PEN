@@ -22,16 +22,13 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.mail.MessagingException;
-import textdisplay.ProjectPriority;
-import textdisplay.DatabaseWrapper;
-import textdisplay.Folio;
-import textdisplay.Manuscript;
-import textdisplay.Project;
+import textdisplay.*;
 import utils.RandomString;
 
 /**
@@ -642,6 +639,32 @@ DatabaseWrapper.closePreparedStatement(ps);
         return toret;
         }
 
+        /**Returns all users active in the last 2 months, or null if none*/
+    public static User[] getRecentUsers() throws SQLException {
+        User[] active;
+        String query = "SELECT DISTINCT creator FROM transcription WHERE DATE > ( NOW( ) + INTERVAL -2 MONTH )";
+        Connection j = null;
+        PreparedStatement ps = null;
+        Stack<User> tmp = new Stack();
+        try {
+            j = DatabaseWrapper.getConnection();
+            ps = j.prepareStatement(query);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                tmp.push(new User(rs.getInt(1)));
+            }
+        } finally {
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
+        }
+        active = new User[tmp.size()];
+        //odd looking way of doing this copy, I know, but it was convenient
+        while (!tmp.empty()) {
+            active[tmp.size() - 1] = tmp.pop();
+        }
+        return active;
+    }
+
     /**
      * Return an array of users who have blank passwords and openids, which indicates they are awaiting approval by an admin
      * @return array of users who are not currently approved to access TPEN
@@ -761,6 +784,42 @@ DatabaseWrapper.closePreparedStatement(ps);
 //        System.out.print("new pass is "+pass+"\n");
         m.sendMail(Folio.getRbTok("EMAILSERVER"), "TPEN@t-pen.org", this.Uname, "TPEN Password Reset", body);
         return newPass;
+        }
+    public String resetPassword(Boolean email) throws SQLException, NoSuchAlgorithmException, MessagingException
+        {
+            if(email)return(resetPassword());
+            
+        String newPass = "";
+        RandomString r = new RandomString(10);
+        newPass = r.nextString();
+        
+        //store the hashed version in pass, that goes to the DB and the unhased version is returned
+        String pass = newPass;
+        String query = "update users set pass=SHA1(?) where UID=?";
+        Connection j = null;
+PreparedStatement ps=null;
+        try
+            {
+            j = DatabaseWrapper.getConnection();
+            ps = j.prepareStatement(query);
+            ps.setString(1, pass);
+            ps.setInt(2, UID);
+            ps.execute();
+            } finally
+            {
+DatabaseWrapper.closeDBConnection(j);
+DatabaseWrapper.closePreparedStatement(ps);
+            }
+        return newPass;
+        }
+    /**Send the welcome message and set the user's password.*/
+    public String activateUser() throws SQLException, NoSuchAlgorithmException, MessagingException, Exception
+        {
+        textdisplay.mailer m = new textdisplay.mailer();
+//        System.out.print("new pass is "+pass+"\n");
+        String pass=resetPassword(false);
+        m.sendMail(Folio.getRbTok("EMAILSERVER"), Folio.getRbTok("NOTIFICATIONEMAIL"), this.Uname, "Welcome to TPEN", new WelcomeMessage().getMessage(this.fname+" "+this.lname,pass) );
+        return this.resetPassword();
         }
     /**This sets the last time the user was active to the current time. Used for determining who is online, and keeping track of active vs inactive users*/
     public void updateLastActive() throws SQLException
@@ -894,6 +953,37 @@ DatabaseWrapper.closePreparedStatement(qry);
             DatabaseWrapper.closePreparedStatement(qry);
             }
         }
+/**
+ * Return an int of lines of transcription for which this creator
+ * @param uid int User ID
+ * @return int count of lines
+ * @throws SQLException 
+ */
+    public int getUserTranscriptionCount() throws SQLException
+{
+    String query="select * from transcription where creator=?";
+    Connection j=null;
+PreparedStatement ps=null;
+    Stack<Transcription> orderedTranscriptions=new Stack();
+    try{
+        j=DatabaseWrapper.getConnection();
+        ps=j.prepareStatement(query);
+        ps.setInt(1, UID);
+        ResultSet rs=ps.executeQuery();
+        int recordCount = 0;
+            while (rs.next())
+                {
+                recordCount++;
+                }
+        return recordCount;
+    }
+    finally
+    {
+DatabaseWrapper.closeDBConnection(j);
+DatabaseWrapper.closePreparedStatement(ps);
+    }
+    
+}
         /**
          * Return an array of all projects this user is a member of
          * @return array of projects
@@ -1179,4 +1269,31 @@ DatabaseWrapper.closePreparedStatement(ps);
 
         return toret;
     }
+    public static User[] getAdmins() throws SQLException
+    {
+        String query="select * from admins";
+        Connection j=null;
+        PreparedStatement ps=null;
+        ArrayList toret=new ArrayList();
+        try{
+            j=DatabaseWrapper.getConnection();
+            ps=j.prepareStatement(query);
+            ResultSet rs=ps.executeQuery();
+            while(rs.next())
+            {
+                toret.add(new User(rs.getInt(1)));
+            }
+        }
+        finally
+        {
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
+        }
+        User [] tr=new User[toret.size()];
+        for (int i=0;i<tr.length;i++){
+        tr[i]=(User) toret.get(i);
+        }
+        return tr;
+    }
+    
     }

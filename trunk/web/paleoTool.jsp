@@ -63,7 +63,8 @@
                 folioNum = Integer.parseInt(request.getParameter("p"));
             } else {
                 // no "p" parameter for folio number
-                out.print("No folio specified.");
+                String errorMessage = "No folio specified.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
                 return;
             }
 %>
@@ -87,11 +88,19 @@
                         the comparison. As more images are analyzed, more 
                         matches will appear.
                     </p>
+                    <a href="paleoTool.jsp?p=<%out.print(folioNum);%>" class="tpenButton ui-button">Return to Page</a>
                 </div>
                 <div id="main">
         <%
                 blob = Integer.parseInt(request.getParameter("b"));
-                out.print(new matchLocater(folioNum, blob, true).getUrls());
+                int matchLevel=70;
+                if(request.getParameter("matchLevel")!=null)
+                        try{
+                            matchLevel=Integer.parseInt(request.getParameter("matchLevel"));
+                        }
+                        catch(NumberFormatException e)
+                                                               {}
+                out.print(new matchLocater(folioNum, blob, true,matchLevel).getUrls());
                 %>
                 </div>
                     <%
@@ -119,10 +128,14 @@
             <select onchange="document.location='paleo.jsp'+(this.options[this.selectedIndex].value);">
                 <option>Change Page</option>
                 <%allBlobDivs a=null;
-                if (request.getParameter("highlightblob") == null){
-                     a= new allBlobDivs(folioNum);
-                    
-                    }
+                    int matchLevel=70;
+                    if(request.getParameter("matchLevel")!=null)
+                        try{
+                            matchLevel=Integer.parseInt(request.getParameter("matchLevel"));
+                        }
+                        catch(NumberFormatException e)
+                                                               {}
+                     a= new allBlobDivs(folioNum, matchLevel);
                 out.print(matchLocater.getDropdown(m.getID()));
                 %>
             </select>
@@ -133,32 +146,46 @@
                         the comparison. As more images are analyzed, more 
                         matches will appear.
                     </p>
+                     <!--Range for filtering-->
+                    <h3>Filters</h3>
+                    <p> 
+                    <div>Showing <span id="filteredBlobs">all</span> of <span id="totalBlobs">all</span>.</div>
+                        <label for="blobHeight">Select Height:</label>
+                        <input type="text" id="blobHeight" class="blobValue" style="border:0; color:#A64129; font-weight:bold;background-color: transparent;" />
+                        <div id="blobHeightSlider" class="blobRange"></div>
+                        <label for="blobWidth">Select Width:</label>
+                        <input type="text" id="blobWidth" class="blobValue" style="border:0; color:#A64129; font-weight:bold;background-color: transparent;" />
+                        <div id="blobWidthSlider" class="blobRange"></div>
+                    </p>
+                    <p>
+                        <a id="showAllBlobs" class="tpenButton ui-button">Show All</a>
+                    </p>
                 </div>
         </div>
         <div id="blobDisplay">
             <%
                 out.print("<img id='blobImage' class='ui-corner-left' src='imageResize?folioNum=" + folioNum + "&height=2000' />");
-                if (request.getParameter("highlightblob") == null){
+//                if (request.getParameter("highlightblob") == null){
                 out.print(a.getDivs());
-                }
+//                }
             %>
              <%
 if (request.getParameter("highlightblob") != null){
     // show the blob(s)
     String blobToHighlight = request.getParameter("blob");
-
-    blob b= blobGetter.getRawBlob(folioNum,Integer.parseInt(blobToHighlight));
-    out.print("<a blobid='"+blobToHighlight+"' class='blob' title='"+
-                    "' href='paleo.jsp?b="+blobToHighlight+"&p="+folioNum+
-                    "' blobx='"+b.getX()+"' bloby='"+b.getY()+
-                    "' blobwidth='"+b.getWidth()+"' blobheight='"+
-                    b.getHeight()+"'></a>");
+//
+//    blob b= blobGetter.getRawBlob(folioNum,Integer.parseInt(blobToHighlight));
+//    out.print("<a blobid='"+blobToHighlight+"' class='blob' title='"+
+//                    "' href='paleo.jsp?b="+blobToHighlight+"&p="+folioNum+
+//                    "' blobx='"+b.getX()+"' bloby='"+b.getY()+
+//                    "' blobwidth='"+b.getWidth()+"' blobheight='"+
+//                    b.getHeight()+"'></a>");
     %><script>
         $("[blobid='<%out.print(blobToHighlight);%>']").addClass('blobHighlight');
+        </script>
         <%}
 
 %>
-        </script>
         <%
             }
         %>
@@ -167,22 +194,54 @@ if (request.getParameter("highlightblob") != null){
         <script type="text/javascript">
             var scrubBlobs = function() {
                 var blobImage = $("#blobImage")[0];
-                var originalX = blobImage.width/blobImage.height*2000;
-                $(".blob").each(function(){
-                    var blob = $(this)
-                    var bX = parseInt(blob.attr("blobx"))/originalX;
-                    var bY = parseInt(blob.attr("bloby"))/2000;
-                    var bH = parseInt(blob.attr("blobheight"))/2000;
-                    var bW = parseInt(blob.attr("blobwidth"))/originalX;
-                    blob.css({
-                        'left'  :   Page.convertPercent(bX, 2)+"%",
-                        'top'  :   Page.convertPercent(bY, 2)+"%",
-                        'height'  :   Page.convertPercent(bH, 2)+"%",
-                        'width'  :   Page.convertPercent(bW, 2)+"%"
+                if (blobImage) {
+                    var originalX = blobImage.width/blobImage.height*2000;
+                    $(".blob").each(function(){
+                        var blob = $(this)
+                        var bX = parseInt(blob.attr("blobx"))/originalX;
+                        var bY = parseInt(blob.attr("bloby"))/2000;
+                        var bH = parseInt(blob.attr("blobheight"))/2000;
+                        var bW = parseInt(blob.attr("blobwidth"))/originalX;
+                        blob.css({
+                            'left'  :   Page.convertPercent(bX, 2)+"%",
+                            'top'  :   Page.convertPercent(bY, 2)+"%",
+                            'height'  :   Page.convertPercent(bH, 2)+"%",
+                            'width'  :   Page.convertPercent(bW, 2)+"%"
+                        });
                     });
-                });
+                    $('#filteredBlobs,#totalBlobs').text($('.blob').size());
+                } else {
+                    console.log('No image loaded');
+                }
             }
             $(window).load(scrubBlobs);
+            $(function(){
+		$( ".blobRange" ).slider({
+			range: true,
+			min: 2,
+			max: 50,
+			values: [ 5, 25 ],
+			slide: function( event, ui ) {
+                            $(this).prev('input').val( ui.values[ 0 ] + "px - " + ui.values[ 1 ] + "px");
+			},
+                        stop: function (event,ui) {
+                            var bH = $('#blobHeightSlider').slider("values");
+                            var bW = $('#blobWidthSlider').slider("values");
+                            $('.blob').show().each(function(){
+                                if ($(this).height() < bH[0] || $(this).width() < bW[0]) {
+                                    $(this).hide();
+                                }
+                                if ($(this).height() > bH[1] || $(this).width() > bW[1]) {
+                                    $(this).hide();
+                                }
+                            });
+                            $('#filteredBlobs').text($('.blob:visible').size());
+                        }
+		});
+		$( "blobValue" ).val( $( this ).next('.blobRange').slider( "values", 0 ) +
+			"px - " + $( this ).next('.blobRange').slider( "values", 1 ) +"px");
+                $('#showAllBlobs').click(function(){$('.blob').show()});
+            });
         </script>
            
                 </div>

@@ -3,6 +3,7 @@
     Created on : Feb 25, 2011, 6:09:12 PM
     Author     : jdeerin1
 --%>
+<%@page import="textdisplay.WelcomeMessage"%>
 <%@page import="textdisplay.Project"%>
 <%@page import="java.sql.Timestamp"%>
 <%@page import="java.util.*"%>
@@ -31,6 +32,7 @@
             #userAccount, #ms, #manageUsers, #options, #about { margin: 0; padding: 0;}
             #userAccount li, #manageUsers li, #ms li, #options li, #about li { margin: 0 4px 3px 3px; padding: 0.4em; padding-left: 1.5em; height: 100%;overflow: hidden; float:left; width:29%; position: relative;}
             #manageUsers li {max-height: 350px;overflow: auto;}
+            #tabs-3 {padding-bottom: 120px;}
             #ms li {width:98% !important; height:auto !important;}
             #ms textarea {width:600px;height:8em;}
             #userAccount li ul,#ms li ul,#manageUsers li ul, #options li ul, #about li ul {padding: 0;margin: 0;}
@@ -57,8 +59,14 @@
             #listings a {position: relative;float:left;padding: 0 4px;}
             #adminManuscript {max-width: 120px;padding: 15px;margin:0 15%;position: relative;}
             #about li {height: 400px;overflow: auto;}
-            #contact,#FBextra {width:100%;height:3em;}
-            #contact:focus,#FBextra:focus {height:6em;}
+            #contact,#FBextra {width:100%;height:6em;}
+            .contactCOMMENT{padding:2px;text-align: center;position: relative;z-index: 2;cursor: pointer;}
+            .contactDiv{margin:-4px 5px 2px;clear:left;background: url(images/linen.png);padding:6px 2px 2px;
+/*                        display:none;*/
+                        overflow: hidden;z-index: 1; border: 1px solid #A68329;
+                       -moz-box-shadow: -1px -1px 2px black;
+                       -webkit-box-shadow: -1px -1px 2px black; 
+                       box-shadow:-1px -1px 2px black;}
             #overlay {display: none;}
             #overlayNote{position: fixed;top:2%;right:2%;white-space: nowrap;font-size: large;font-weight: 700;font-family: monospace;text-shadow:1px 1px 0 white;}
             .mapCheck {display: none;}
@@ -88,6 +96,24 @@
             #clearMap {width:100%;clear:left;}
             #mapSearch {
                 width:300px;
+            }
+            #welcomeMsg textarea {
+                height:2em;
+            }
+            #welcomeMsg textarea, welcomeForm {
+                -o-transition: height, .5s;
+                -moz-transition: height .5s;
+                -webkit-transition: height .5s;
+                transition: height .5s;
+            }
+            #welcomeForm:hover textarea {
+                height:18em;
+            }
+            #welcomeForm {
+                position:absolute !important;
+                width:96% !important;
+                height:auto !important;
+                bottom:0;
             }
         </style>
         <script>
@@ -160,6 +186,10 @@
                     $("#closePopup").click(function(){
                         $("#overlay").click();
                     });
+                    $(".contactDiv").addClass('ui-corner-all');
+//                    $(".contact").click(function(){
+//                        $(this).siblings(".contactDiv").slideToggle(500);
+//                    });
                 });
                 function manageUsers(){
                     $("#manageUsersBtn").children("span").switchClass("ui-icon-alert","ui-icon-check");
@@ -294,10 +324,20 @@
                                         out.print("<br><br><ul><h3>Passwords did not match; no change has been made.</h3></ul><br><br>");
                                     }
                                 }
+                                if (request.getParameter("welcome") != null) {
+                                    if (!thisUser.isAdmin()) {
+                String errorMessage = thisUser.getFname() + ", you have attempted something limited to administrators.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
+                return;
+                                    }
+                                    textdisplay.WelcomeMessage nwm = new WelcomeMessage();
+                                    nwm.SetMessage(request.getParameter("welcome"));
+                                }
                                 if (request.getParameter("eula") != null) {
                                     if (!thisUser.isAdmin()) {
-                                        out.print("Only admins can do that !");
-                                        return;
+                String errorMessage = thisUser.getFname() + ", you have attempted something limited to administrators.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
+                return;
                                     }
                                     String archiveName = request.getParameter("name");
                                     textdisplay.Archive a = new textdisplay.Archive(archiveName);
@@ -305,8 +345,9 @@
                                 }
                                 if (request.getParameter("alert") != null) {
                                     if (!thisUser.isAdmin()) {
-                                        out.print("Only admins can do that !");
-                                        return;
+                String errorMessage = thisUser.getFname() + ", you have attempted something limited to administrators.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
+                return;
                                     }
                                     String archiveMsg = request.getParameter("alert");
                                     textdisplay.Archive a = new textdisplay.Archive(request.getParameter("name"));
@@ -428,7 +469,7 @@
                                 }
 
                                 if (thisUser.isAdmin()) { //hide non-Admin items%>
-                            <li class="gui-tab-section">
+                                <li class="gui-tab-section">
                                 <h3>Update IPR agreements </h3>
                                 <select id="iprs">
                                     <option value="-1" selected>Select an archive</option>
@@ -594,7 +635,7 @@
                                 <form action="admin.jsp" method="POST">
 
                                     <input type="hidden" name="restrict" value="true">
-                                    <select name="ms">
+                                    <select name="ms" class="combobox">
                                         <%
                                             for (int i = 0; i < cities.length; i++) {
                                                 textdisplay.Manuscript[] cityMSS = textdisplay.Manuscript.getManuscriptsByCity(cities[i]);
@@ -606,7 +647,7 @@
                                             }
                                         %>
                                     </select>
-                                    <select name="uid">
+                                    <select name="uid" class="combobox">
                                         <%
                                             for (int i = 0; i < allUsers.length; i++) {
                                                 out.print("<option value=" + allUsers[i].getUID() + ">" + allUsers[i].getFname() + " " + allUsers[i].getLname() + " (" + allUsers[i].getUname() + ")" + "</option>");
@@ -698,9 +739,21 @@
                                         %>
                                     <script>userList = '<%out.print(userEmails.toString().substring(2));%>';</script>
                                 </div></li>
+                                <%
+                                textdisplay.WelcomeMessage welcome = new WelcomeMessage();
+                                String wMsg = welcome.getMessagePlain();
+                                %>
+                                <li class="gui-tab-section" id="welcomeForm">
+                                    <h3>Update Welcome Message </h3>
+                                    <form id="welcomeMsg" class="ui-corner-all" action="admin.jsp" method="post">
+                                        <textarea name="welcome" cols="78" rows="6"><%out.print(wMsg);%></textarea>
+                                        <input type="hidden" name="selecTab" value="2">
+                                        <input type="submit" name="submitted" style="display:block;" value="Update Welcome">
+                                    </form>
+                                </li>
                         </ul>
                     </div>
-                    <%}
+                    <%} // end of isAdmin()
                                     }%>
                     <!--                end of tabs-3, manage users-->
                     <div id="aboutTab">
@@ -747,10 +800,9 @@
                                              src="images/sharing/blogger-128.png"/>
                                     </a>
                                 </div>
-                                <dl>
-
-                                    <dt>Direct Communication</dt>
-                                    <dd>
+                                <div>
+<!--                                    <div class="tpenButton contact">Directed Communication</div>
+                                    <div class="contactDiv" style="display:block;">
                                         <form id="bugForm" onsubmit="$('#FBextra').change();" method="POST" action="http://165.134.241.72/ScoutSubmit.asp" target="_blank">
                                             <input type="hidden" value="James Ginther" name="ScoutUserName" />
                                             <input type="hidden" value="T-PEN" name="ScoutProject" />
@@ -762,7 +814,7 @@
                                             <input id="extraSubmit" type="hidden" value="" name="Extra" />
                                             <input id="FBemail" type="hidden" value="<%out.print(thisUser.getUname());%>" name="Email" />
                                             <input type="hidden" name="FriendlyResponse" value="1" />
-                                            <!--        Category is not supported in Scout at this time and will be added to the description.-->
+                                                    Category is not supported in Scout at this time and will be added to the description.
                                             <select id="FBcategory" name="Category">
                                                 <option value="Inquiry">Ask a Question</option>
                                                 <option value="Feature">Request a Feature</option>
@@ -772,10 +824,9 @@
                                             <textarea id="FBextra" placeholder="Include any additional information" name="FBExtra"></textarea>
                                             <input type="submit" value="Submit" />
                                         </form>
-
-                                    </dd>
-                                    <dt>E-mail</dt>
-                                    <dd>
+                                    </div>-->
+                                    <h4>Contact Us</h4>
+                                    <div>
                                         <%
                                             if (request.getParameter("contactTPEN") != null) {
                                                 String msg = "Message was not successfully received.";
@@ -824,8 +875,8 @@
                                             <input type="hidden" value="3" name="selecTab" />
                                             <textarea id="contact" name="contact" placeholder="User information will be included automatically with this message"></textarea>
                                             <input type="submit" name="contactTPEN" value="Send Message" />
-                                        </form> </dd>
-                                </dl>
+                                        </form> </div>
+                                </div>
                             </li>
                             <li class="gui-tab-section">
                                 <h3>User Agreement</h3>

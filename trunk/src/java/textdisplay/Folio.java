@@ -50,7 +50,8 @@ import user.User;
  * information and the metadata for rendering IPR and shelfmarks.
  * @author jdeering*/
 public class Folio {
-
+    
+    
     /**
      * Retrieve a value from the config file
      * @param propToken The name of the parameter to be retrieved from the config file
@@ -66,6 +67,8 @@ public class Folio {
         }
         return msg;
     }
+    
+    
     Line[] linePositions;
     int[] colStarts;
     int[] colWidths;
@@ -73,11 +76,13 @@ public class Folio {
     private String archive;
     Boolean zoom = false;
     Boolean forceSingleColumn = false;
-
+    
+    
     /**Create a blank Folio, used internally or for creating a bean*/
     public Folio() {
     }
-
+    
+    
     /**
      * Add a Folio record identifying Archive, shelfmark, and page and return the unique id associated with it
      * @param collection a way of itentifying this Manuscript (ie ms415)
@@ -89,7 +94,7 @@ public class Folio {
      */
     public static int createFolioRecord(String collection, String pageName, String imageName, String archive, int msID) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             String query = "insert into folios (collection,pageName,imageName,archive,msID, uri) values(?,?,?,?,?,?)";
             j = DatabaseWrapper.getConnection();
@@ -109,14 +114,16 @@ PreparedStatement stmt=null;
                 return 0;
             }
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
+    
+    
     /**Create a folio record including the SharedCanvas uri associated with the image.*/
-public static int createFolioRecord(String collection, String pageName, String imageName, String archive, int msID, int sequence,String canvas) throws SQLException {
+    public static int createFolioRecord(String collection, String pageName, String imageName, String archive, int msID, int sequence,String canvas) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             String query = "insert into folios (collection,pageName,imageName,archive,msID, uri, sequence, canvas) values(?,?,?,?,?,?,?,?)";
             j = DatabaseWrapper.getConnection();
@@ -138,10 +145,12 @@ PreparedStatement stmt=null;
                 return 0;
             }
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
+    
+    
     /**
      *Fast way to create a new Folio record. 
      * @param collection
@@ -180,7 +189,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
             //j.close();
         }
     }
-
+    
+    
     /**
      * Create a new Folio using an array of lines from the Line detector. Overwrites any old Line definintions
      * @param lines array of Line objects, from the Line detector
@@ -200,7 +210,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
+    
+    
     /**
      * @deprecated old method from early prototype that assumes a local Archive called ENAP
      * If we dont have the page number (which is rather arbitrary) we need the page name to look up the page number, and
@@ -212,7 +223,7 @@ DatabaseWrapper.closePreparedStatement(stmt);
      */
     public static int getPageNum(String pageName, String collection) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             while (pageName.length() < 3) {
                 pageName = "0" + pageName;
@@ -228,20 +239,20 @@ PreparedStatement stmt=null;
             }
             return (rs.getInt(1));
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /**
      * @deprecated this lookup is no longer used
      * If we dont have the page number (which is rather arbitrary) we need the page name to look up the page number, and
     go about our buisness.*/
     public static int getPageNum(String pageName, String collection, String archive) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
-
             while (pageName.length() < 3) {
                 pageName = "0" + pageName;
             }
@@ -253,16 +264,41 @@ PreparedStatement stmt=null;
             stmt.setString(3, archive);
             ResultSet rs = stmt.executeQuery();
             if (!rs.next()) {
-
                 return 0;
             }
             return (rs.getInt(1));
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
+    /**Find the folio number of the folio with the given canvas*/
+    public static int getFolioFromCanvas(String canvas) throws SQLException
+    {
+        String query="select pageNumber from folios where canvas=?";
+        Connection j=null;
+        PreparedStatement ps=null;
+        try{
+            j=DatabaseWrapper.getConnection();
+            ps=j.prepareStatement(query);
+            ps.setString(1, canvas);
+            ResultSet rs=ps.executeQuery();
+            if(rs.next())
+            {
+                return rs.getInt(1);
+            }
+        }
+        finally
+        {
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
+        }
+        return 0;
+    }
+    
+    
     /**
      * @deprecated zoom is now handled by the ui
      * When zoom is set, an image with double the normal resolution will be used, and all of the positional information
@@ -270,7 +306,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
     public void setZoom() {
         zoom = true;
     }
-
+    
+    
     /**
      * Returns the unique identifier for this Folio within TPEN
      * @return the unique identifier for this Folio if it has been properly instantiated
@@ -278,15 +315,16 @@ DatabaseWrapper.closePreparedStatement(stmt);
     public int getFolioNumber() {
         return this.folioNumber;
     }
-
+    
+    
     /**Does this Folio have IPR restrictions that the user will need to be made aware of?
      *  @deprecated IPR restriction requests are now serviced by the Manuscript object
      */
     public Boolean hasIPRRestrictions() {
-
         return false;
     }
-
+    
+    
     /**
      * @deprecated IPR restriction requests are now serviced by the Manuscript object
      * Return the IPR message for this image, not implemented yet*/
@@ -295,7 +333,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
         //return ("Use of this image is goverened by US and international copyright law. Permission to use it within this tool has been provided by the owner of those rights, " +
         //      ", however, permission for any other use has not been given. By accepting this, you agree to abide by these restrictions.");
     }
-
+    
+    
     /**Returns each Line of the ms represented by a properly sized div*/
     public String getLinesAsDivs() {
         String toret = "";
@@ -311,7 +350,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
         }
         return toret;
     }
-
+    
+    
     /**Returns each Line of the ms represented by a properly sized div accounting for columns*/
     public String getLinesAsDivsWithCols() {
         String toret = "";
@@ -339,7 +379,6 @@ DatabaseWrapper.closePreparedStatement(stmt);
                             toret += "px;height:" + (linePositions[i].bottom - linePositions[i].top);
                         }
                         toret += "px;width:" + linePositions[i].getWidth() + "px;background-color:red;\" " + onClick + " >";
-
                     } else {
                         toret += "px;width:200" + "px;height:" + (linePositions[i].bottom - linePositions[i].top) + "px;background-color:red;\" " + onClick + " >";
                     }
@@ -349,7 +388,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
         }
         return toret;
     }
-
+    
+    
     /**
      * Create a set of HTML objects to display an overlay using the coordinates from lines
      * @param lines array of lines that should be rendered
@@ -388,30 +428,32 @@ DatabaseWrapper.closePreparedStatement(stmt);
                     toret += "</div>";
                 }
             }
-
         }
         this.linePositions = tmp;
         return toret;
     }
+    
+    
     /**Allows the page name, which is displayed in the UI, to be updated. Used on manuscript admin.jsp*/
-public void setPageName(String name) throws SQLException
-{
-    String query="update folios set pageName=? where pageNumber=?";
-    Connection j=null;
-PreparedStatement ps=null;
-    try{
-
-        j=DatabaseWrapper.getConnection();
-        ps=j.prepareStatement(query);
-        ps.setString(1, name);
-        ps.setInt(2, folioNumber);
-        ps.execute();
+    public void setPageName(String name) throws SQLException
+    {
+        String query="update folios set pageName=? where pageNumber=?";
+        Connection j=null;
+        PreparedStatement ps=null;
+        try {
+            j=DatabaseWrapper.getConnection();
+            ps=j.prepareStatement(query);
+            ps.setString(1, name);
+            ps.setInt(2, folioNumber);
+            ps.execute();
+        }
+        finally {
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
+        }
     }
-    finally{
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(ps);
-    }
-}
+    
+    
     /**
      * @deprecated the image parser doesnt need to be told how many columns to expect any longer
      * Force the Line detector to treat this page as a single column for purposes of Line detection*/
@@ -436,7 +478,8 @@ DatabaseWrapper.closePreparedStatement(ps);
             DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /**Return an html image element that will show just the requested Line.*/
     public String getLineImage(int lineNo) {
         String toret = "";
@@ -449,18 +492,21 @@ DatabaseWrapper.closePreparedStatement(ps);
         }
         return toret;
     }
-/**Constructor that doesnt force line detection.*/
+    
+    
+    /**Constructor that doesnt force line detection.*/
     public Folio(Boolean nolines, int folioNumber) {
         this.folioNumber = folioNumber;
     }
-
+    
+    
     /**Used in the Transcription search to populate this Folio, so it can then be used to include an image of the Line that the search result
     points to*/
     public Folio(int folioNumber, Boolean cols) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
-PreparedStatement stmt2=null;
-PreparedStatement stmt3=null;
+        PreparedStatement stmt=null;
+        PreparedStatement stmt2=null;
+        PreparedStatement stmt3=null;
         try {
             this.folioNumber = folioNumber;
             //If this Folio has an existing record, retrieve it. Otherwise, get a blank one.
@@ -496,15 +542,15 @@ PreparedStatement stmt3=null;
             if (i == 0) {
                 //run the Line detector, this was a Folio we knew about but never ran detection on.
                 detect(folioNumber, this.forceSingleColumn);
-
+                
                 stmt.setInt(1, folioNumber);
                 rs = stmt.executeQuery();
                 rs.next();
                 size = rs.getInt(1);
-
+                
                 linePositions = new Line[size];
                 rs = stmt3.executeQuery();
-
+                
                 while (rs.next()) {
                     linePositions[i] = new Line(0, 0, 0, 0);
                     linePositions[i].bottom = rs.getInt("bottom");
@@ -513,21 +559,22 @@ PreparedStatement stmt3=null;
                     linePositions[i].right = linePositions[i].left + rs.getInt("width");
                     i++;
                 }
-
+                
             }
-
+            
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
-DatabaseWrapper.closePreparedStatement(stmt2);
-DatabaseWrapper.closePreparedStatement(stmt3);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closePreparedStatement(stmt2);
+            DatabaseWrapper.closePreparedStatement(stmt3);
         }
     }
-
+    
+    
     /**Create a dropdown of folios available for Transcription, even if a Transcription has never been attempted.*/
     public String getFolioDropDown() throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             String toret = "";
             j = DatabaseWrapper.getConnection();
@@ -535,7 +582,7 @@ PreparedStatement stmt=null;
             stmt = j.prepareStatement(qry);
             stmt.setString(1, this.archive);
             stmt.setString(2, this.getCollectionName());
-
+            
             ResultSet rs = stmt.executeQuery();
             Stack<String> pageNames = new Stack();
             Stack<Integer> pageNumbers = new Stack();
@@ -547,12 +594,12 @@ PreparedStatement stmt=null;
             }
             int[] pageNumbersArray = new int[pageNumbers.size()];
             String[] paddedPageNameArray = new String[pageNames.size()];
-
+            
             for (int i = 0; i < paddedPageNameArray.length; i++) {
                 paddedPageNameArray[i] = pageNames.elementAt(i);
                 pageNumbersArray[i] = pageNumbers.get(i);
             }
-
+            
             for (int i = 0; i < paddedPageNameArray.length; i++) {
                 for (int k = 0; k < paddedPageNameArray.length - 1; k++) {
                     if (paddedPageNameArray[k].compareTo(paddedPageNameArray[k + 1]) > 0) {
@@ -562,7 +609,7 @@ PreparedStatement stmt=null;
                         int tmpInt = pageNumbersArray[k];
                         pageNumbersArray[k] = pageNumbersArray[k + 1];
                         pageNumbersArray[k + 1] = tmpInt;
-
+                        
                     }
                 }
             }
@@ -575,13 +622,15 @@ PreparedStatement stmt=null;
                 Manuscript ms = new Manuscript(rs.getInt("msID"), true);
                 toret += "<option value=\"" + rs.getInt("pageNumber") + "\">" + ms.getShelfMark() + " " + rs.getString("pageName") + "</option>";
             }
-
+            
             return toret;
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
+    
+    
     /**Zero pad image names to 4 places for sorting purposes when the ordering of the images is not made clear by stored values*/
     public static String zeroPadLastNumberFourPlaces(String name) {
         for (int i = name.length() - 1; i >= 0; i--) {
@@ -622,17 +671,18 @@ DatabaseWrapper.closePreparedStatement(stmt);
                         //return name;
                     }
                 }
-
+                
             }
         }
         return name;
     }
-
+    
+    
     /**Create the items for a dropdown list of all people who have created transcriptions of the
     page in question*/
     public String getTranscriberDropDown(int folioNum) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             String query = "select distinct(creator),collection,archive,pageName from transcription join folios on transcription.folio=folios.pageNumber where folio=? order by archive,collection,pageName";
             String toret = "";
@@ -646,37 +696,39 @@ PreparedStatement stmt=null;
             }
             return toret;
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /**Create a dropdown of available folios which have existing transcriptions*/
     public String getTranscriptionFolioDropDown() throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             String toret = "";
             String qry = "select Distinct(folio),pageNumber,archive,collection,pageName from transcription join folios on transcription.folio=pageNumber order by folios.collection";
             j = DatabaseWrapper.getConnection();
             stmt = j.prepareStatement(qry);
             ResultSet rs = stmt.executeQuery();
-
+            
             while (rs.next()) {
                 Manuscript ms = new Manuscript(rs.getString("collection"), rs.getString("archive"));
                 toret += "<option value=\"?archive=" + rs.getString("archive") + "&collection=" + rs.getString("collection") + "&page=" + rs.getString("pageName").replace(" ", "%20") + "\">" + ms.getShelfMark() + " " + rs.getString("pageName") + "</option>";
             }
             return toret;
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /**Get the name of the image associated with this Folio*/
     public String getImageName() throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             String toret = "";
             String qry = "select * from folios where pageNumber=?";
@@ -692,15 +744,16 @@ PreparedStatement stmt=null;
             }
             return toret;
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /**Get the image url of a page without instantiating a Folio object*/
     public static String getImageName(String pageName) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             String toret = "";
             String qry = "select * from folios where pageName=? order by pageNumber desc limit 1";
@@ -716,20 +769,21 @@ PreparedStatement stmt=null;
             }
             return toret;
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /**Retrieve the stored image url*/
     public String getImageURL() throws SQLException {
-
+        
         String query = "select uri from folios where pageNumber=?";
         if (this.getArchive().compareTo("CEEC") == 0 || this.getArchive().compareTo("ecodices") == 0) {
             query = "select imageName from folios where pageNumber=?";
         }
         Connection j = null;
-PreparedStatement ps=null;
+        PreparedStatement ps=null;
         try {
             j = DatabaseWrapper.getConnection();
             ps = j.prepareStatement(query);
@@ -740,11 +794,12 @@ PreparedStatement ps=null;
             }
             return "";
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(ps);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
         }
     }
-
+    
+    
     /**Build an image url for the requested page in the requested digital Archive
     @Depricated*/
     /*
@@ -756,24 +811,24 @@ DatabaseWrapper.closePreparedStatement(ps);
     }*/
     /**Build an image url for the requested page in the requested digital Archive*/
     public static String getImageURL(int folioNum) throws SQLException {
-
         return textdisplay.Archive.getURLResizedLarge(folioNum, 2000);
     }
-
+    
+    
     /**
      * Build a url for a 1000 pixel height image.
      * @return String containing the url for a 1000 pixel height version of the image.
      * @throws SQLException 
      */
     public String getImageURLResize() throws SQLException {
-
-       String toret="";
+        String toret="";
         toret= textdisplay.Archive.getURLResized(this.folioNumber, 1000);
-        if(toret==null)
-                return "";
+        if (toret==null)
+            return "";
         return toret;
     }
-
+    
+    
     /**
      * Build a url for a scaled image
      * @param size requested height in pixels
@@ -781,21 +836,23 @@ DatabaseWrapper.closePreparedStatement(ps);
      * @throws SQLException 
      */
     public String getImageURLResize(int size) throws SQLException 
-    {String toret="";
-     try{   
-     
+    {
+        String toret="";
+        try
+        {
+            toret= textdisplay.Archive.getURLResized(this.folioNumber, size);
+        }
+        catch(Exception e)
+        {
+            return "";
+        }
         
-        toret= textdisplay.Archive.getURLResized(this.folioNumber, size);
-     }
-     catch(Exception e)
-     {
-         return "";
-     }
         if(toret==null)
-                return "";
+            return "";
         return toret;
     }
-
+    
+    
     /**
      * Get the Folio object associated with a particular image name or image url
      * @param imageName image name or image url
@@ -804,7 +861,7 @@ DatabaseWrapper.closePreparedStatement(ps);
      */
     public static Folio getImageNameFolio(String imageName) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             j = DatabaseWrapper.getConnection();
             String query = "select pageNumber from folios where imageName=?";
@@ -818,11 +875,12 @@ PreparedStatement stmt=null;
                 return null;
             }
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /**
      * Get the name of the collection this MS page belongs to
      * @return collection name or empty string if this object isnt populated
@@ -830,8 +888,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
      */
     public String getCollectionName() throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
-
+        PreparedStatement stmt=null;
+        
         try {
             String toret = "";
             String qry = "select * from folios where pageNumber=?";
@@ -844,11 +902,35 @@ PreparedStatement stmt=null;
             }
             return toret;
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
+    public String getCanvas() throws SQLException
+    {
+        Connection j = null;
+        PreparedStatement stmt=null;
+        try {
+            String toret = "";
+            String qry = "select * from folios where pageNumber=?";
+            j = DatabaseWrapper.getConnection();
+            stmt = j.prepareStatement(qry);
+            stmt.setInt(1, folioNumber);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                toret += rs.getString("canvas");
+            }
+            
+            return toret;
+        } finally {
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
+        }
+    }
+    
+    
     /**
      * Get the page name for this Folio
      * @return the page name ( 1. V for example) or "" if this object isnt populated
@@ -856,7 +938,7 @@ DatabaseWrapper.closePreparedStatement(stmt);
      */
     public String getPageName() throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             String toret = "";
             String qry = "select * from folios where pageNumber=?";
@@ -867,15 +949,15 @@ PreparedStatement stmt=null;
             if (rs.next()) {
                 toret += rs.getString("pageName");
             }
-
-
+            
             return toret;
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /**
      * Constructor for a Folio based on the unique id. Most common constructor. Will generate Line parsing for this image
      * if it hasnt been parsed previously to ensure Line positions are available, so can take a while to run in some cases.
@@ -884,7 +966,7 @@ DatabaseWrapper.closePreparedStatement(stmt);
      */
     public Folio(int folioNumber) throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             this.folioNumber = folioNumber;
             //If this Folio has an existing record, retrieve it. Otherwise, get a blank one.
@@ -896,7 +978,7 @@ PreparedStatement stmt=null;
             if (rs.next()) {
                 size = rs.getInt(1);
             }
-
+            
             linePositions = new Line[size];
             stmt = j.prepareStatement("Select * from imagepositions where folio=? and top<bottom order by colstart, top");
             stmt.setInt(1, folioNumber);
@@ -910,74 +992,73 @@ PreparedStatement stmt=null;
                 linePositions[i].right = rs.getInt("width") + linePositions[i].left;
                 i++;
             }
-
+            
             stmt = j.prepareStatement("select * from folios where pageNumber=?");
             stmt.setInt(1, folioNumber);
             rs = stmt.executeQuery();
             if (rs.next()) {
                 archive = rs.getString("archive");
             }
-
+            
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
+    
+    
     public Boolean isReadyForPaleographicAnalysis() throws SQLException
     {
         String query="select paleography from folios where pageNumber=? and paleography!='0000-00-00 00:00:00'";
         Connection j = null;
-PreparedStatement ps=null;
+        PreparedStatement ps=null;
         try {
-        j=DatabaseWrapper.getConnection();
-        ps=j.prepareStatement(query);
-        ps.setInt(1, folioNumber);
-        ResultSet rs=ps.executeQuery();
-        if(rs.next())
-        {
-                       Date d=rs.getDate("paleography");
-                       if(d.getTime()!=0)
-                           return true;
-
+            j=DatabaseWrapper.getConnection();
+            ps=j.prepareStatement(query);
+            ps.setInt(1, folioNumber);
+            ResultSet rs=ps.executeQuery();
+            if(rs.next())
+            {
+                Date d=rs.getDate("paleography");
+                if(d.getTime()!=0)
+                    return true;
+            }
         }
-        }
-        finally{
+        finally {
             DatabaseWrapper.closeDBConnection(j);
             DatabaseWrapper.closePreparedStatement(ps);
         }
         return false;
     }
+    
+    
     /**Is this image cached? Useful for setting user expectations, and restricting the nmber of new image loads over a given period of time for the paleography UI*/
     public Boolean isCached() throws SQLException
     {
-        String query="select * from imageCache where folio=? ";
+        String query="select folio from imageCache where folio=? ";
         Connection j = null;
-PreparedStatement ps=null;
+        PreparedStatement ps=null;
         try {
-        j=DatabaseWrapper.getConnection();
-        ps=j.prepareStatement(query);
-        ps.setInt(1, folioNumber);
-        ResultSet rs=ps.executeQuery();
-        if(rs.next())
-        {
-
-                           return true;
-
+            j=DatabaseWrapper.getConnection();
+            ps=j.prepareStatement(query);
+            ps.setInt(1, folioNumber);
+            ResultSet rs=ps.executeQuery();
+            if(rs.next())
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
- else
-        {
-            return false;
-        }
-        }
-        finally{
+        finally {
             DatabaseWrapper.closeDBConnection(j);
             DatabaseWrapper.closePreparedStatement(ps);
         }
-
-    
-
     }
-
+    
+    
     /**
      * @deprecated 
      * Deprecated constructor building a Folio from its unique id. This provided a db connection, so
@@ -988,12 +1069,11 @@ PreparedStatement ps=null;
      * @throws SQLException 
      */
     public Folio(int folioNumber, Connection j) throws SQLException {
-PreparedStatement stmt=null;
-
-
+        PreparedStatement stmt=null;
+        
         this.folioNumber = folioNumber;
         //If this Folio has an existing record, retrieve it. Otherwise, get a blank one.
-
+        
         stmt = j.prepareStatement("Select count(*) from imagepositions where folio=? and top<bottom order by colstart,top");
         stmt.setInt(1, folioNumber);
         ResultSet rs = stmt.executeQuery();
@@ -1001,7 +1081,7 @@ PreparedStatement stmt=null;
         if (rs.next()) {
             size = rs.getInt(1);
         }
-
+        
         linePositions = new Line[size];
         stmt = j.prepareStatement("Select * from imagepositions where folio=? and top<bottom order by colstart, top");
         stmt.setInt(1, folioNumber);
@@ -1015,18 +1095,17 @@ PreparedStatement stmt=null;
             linePositions[i].right = rs.getInt("width") + linePositions[i].left;
             i++;
         }
-
+        
         stmt = j.prepareStatement("select * from folios where pageNumber=?");
         stmt.setInt(1, folioNumber);
         rs = stmt.executeQuery();
         if (rs.next()) {
             archive = rs.getString("archive");
         }
-
-
-
+        
     }
-
+    
+    
     /**
      * Protected constructor for a Folio that expects 3 prepared statements. This makes repreat calls work quickly. Used when adding
      * new manuscripts containing hundreds of pages.
@@ -1037,8 +1116,6 @@ PreparedStatement stmt=null;
      * @throws SQLException 
      */
     protected Folio(int folioNumber, PreparedStatement stmt, PreparedStatement stmt2, PreparedStatement stmt3) throws SQLException {
-
-
         this.folioNumber = folioNumber;
         //If this Folio has an existing record, retrieve it. Otherwise, get a blank one.
         //j = DatabaseWrapper.getConnection();
@@ -1049,7 +1126,7 @@ PreparedStatement stmt=null;
         if (rs.next()) {
             size = rs.getInt(1);
         }
-
+        
         linePositions = new Line[size];
         // stmt2 = j.prepareStatement("Select * from imagepositions where Folio=? and top<bottom order by colstart, top");
         stmt2.setInt(1, folioNumber);
@@ -1063,17 +1140,16 @@ PreparedStatement stmt=null;
             linePositions[i].right = rs.getInt("width") + linePositions[i].left;
             i++;
         }
-
+        
         //stmt3=j.prepareStatement("select * from folios where pageNumber=?");
         stmt3.setInt(1, folioNumber);
         rs = stmt3.executeQuery();
         if (rs.next()) {
             archive = rs.getString("archive");
         }
-
-
     }
-
+    
+    
     /**
      * Run Line detection on columns that have been saved for this Folio previously. Typical procedure is to save the columns as lines, then call this. The result
      * will be that lines are added within each of those columns, and the columns are removed.
@@ -1081,7 +1157,7 @@ PreparedStatement stmt=null;
     public void detectInColumns() {
         try {
             Stack<detectimages.line> newLines = new Stack();
-
+            
             for (int i = 0; i < this.linePositions.length; i++) {
                 if (this.linePositions[i].right != 0) {
                     detectimages.line[] tmp = detect(i);
@@ -1104,7 +1180,8 @@ PreparedStatement stmt=null;
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, e);
         }
     }
-
+    
+    
     /**
      * Run the Line detection procedure on the column(s) passed in, and return the results
      * @param lines Array of lines where each Line will be treated as a column
@@ -1118,7 +1195,7 @@ PreparedStatement stmt=null;
             Logger.getLogger("folio").log(Level.SEVERE, ("Recieved " + linePositions.length + " lines in folio on line 961"));
             System.out.print("Recieved " + linePositions.length + " lines in folio on line 961\n");
             System.out.flush();
-
+            
             for (int i = 0; i < this.linePositions.length; i++) {
                 if (this.linePositions[i].right != 0) {
                     detectimages.line[] tmp = detect(i);
@@ -1143,7 +1220,8 @@ PreparedStatement stmt=null;
             return null;
         }
     }
-
+    
+    
     /**
      * Return the width of the image if the image were scaled to 1000 pixels in height. Height=1000 is how we record all image positional data.
      * It can fail if image retrieval fails, because this has to actually fetch a copy of the image.
@@ -1163,7 +1241,8 @@ PreparedStatement stmt=null;
             return -1;
         }
     }
-
+    
+    
     /**
      * Run Line detection on a known column to find the lines within.
      *@param colNum the number of the Line object in linePositions that represents the column within which lines should be detected
@@ -1208,12 +1287,9 @@ PreparedStatement stmt=null;
             //returned by the detector
             for (int i = 0; i < flipped.length; i++) {
                 flipped[i].setStartHorizontal(flipped[i].getStartHorizontal() + x);
-
                 flipped[i].setStartVertical(flipped[i].getStartVertical() + y - flipped[i].getDistance());
-
             }
             //force the top Line to begin at the top of the user defined column, so no portion of the original column is truncated in this process
-
             if(flipped.length==0)
                 return null;
             flipped[0].setStartVertical(y);
@@ -1228,11 +1304,11 @@ PreparedStatement stmt=null;
         } catch (Exception ex) {
             //because the Line parsing process is developed in tandem with this, catch a potential unforseen error and log it rather than throwing it to the jsp
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, ex);
-
         }
         return null;
     }
-
+    
+    
     /**Detect lines in the image.
      *@param force if true, force the image to be treated as only a single column
      *@param folioNum the page's unique identifier
@@ -1243,22 +1319,20 @@ PreparedStatement stmt=null;
             BufferedImage img = imageHelpers.readAsBufferedImage(new URL(imageURL));
             int height = 1000;
             imageProcessor proc = new imageProcessor(img, height);
-
+            
             Vector<detectimages.line> v;
             //There is an aggressive Line detection method that attempts to extract characters from the binarized image
             //and use those pasted on a fresh canvas to detect lines. It is only used for a few specific image hosts
             //and has some error catching for a stack overflow that has occured before due to a recursive call within
-            if ( this.getArchive().compareTo("CEEC") == 0 || this.getArchive().compareTo("ecodices")==0)  {
+            if ( this.getArchive().compareTo("CEEC") == 0 || this.getArchive().compareTo("ecodices")==0 || new Manuscript(this.folioNumber).getCity().compareTo("Baltimore")==0)  {
                 try {
                     v = proc.detectLines(true);
-
                 } //if the agressive method fails, log the error and run regular
                 catch (Exception e) {
                     Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, "failed using agressive parsing, see error below\n");
                     Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, e);
                     v = proc.detectLines(false);
                 }
-
             } else {
                 v = proc.detectLines(false);
             }
@@ -1266,15 +1340,16 @@ PreparedStatement stmt=null;
             for (int i = 0; i < toret.length; i++) {
                 toret[i] = v.get(i);
             }
-
+            
             //update the Folio with the new Line positions
             new Folio(toret, folioNum);
-
+            
         } catch (Exception ex) {
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
+    
+    
     /**@deprecated old unused constructor
      * 
      * @param folioNumber
@@ -1284,7 +1359,8 @@ PreparedStatement stmt=null;
         linePositions = new Line[lineCount];
         this.folioNumber = folioNumber;
     }
-
+    
+    
     /**
      * @depricated should be done via the Manuscript object
      * Determine whether any transcriptions exist for the Manuscript this Folio belongs to.
@@ -1293,8 +1369,8 @@ PreparedStatement stmt=null;
      */
     protected int transcriptionExists() throws SQLException {
         Connection j = null;
-PreparedStatement ps=null;
-PreparedStatement stmt=null;
+        PreparedStatement ps=null;
+        PreparedStatement stmt=null;
         try {
             int pagecount = 0;
             String folioQuery = "select pageNumber from folios where collection=?";
@@ -1311,18 +1387,17 @@ PreparedStatement stmt=null;
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 int count = rs.getInt(1);
-
                 return count;
             }
             return pagecount;
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(ps);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(ps);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
-
     }
-
+    
+    
     /**
      * @deprecated should be done via the Manuscript object, and this version is from before connection pooling was working.
      * Determine whether any transcriptions exist for the Manuscript this Folio belongs to, speeding things up by avoiding a connection open .
@@ -1331,38 +1406,35 @@ DatabaseWrapper.closePreparedStatement(stmt);
      * @throws SQLException 
      */
     protected int transcriptionExists(Connection j) throws SQLException {
-PreparedStatement ps=null;
-PreparedStatement stmt=null;
-try{
-        int pagecount = 0;
-        String folioQuery = "select pageNumber from folios where collection=?";
-        //j = DatabaseWrapper.getConnection();
-        ps = j.prepareStatement(folioQuery);
-        ps.setString(1, this.getCollectionName());
-        ResultSet folios = ps.executeQuery();
-        String list = "0";
-        while (folios.next()) {
-            list += "," + folios.getString(1);
+        PreparedStatement ps=null;
+        PreparedStatement stmt=null;
+        try {
+            int pagecount = 0;
+            String folioQuery = "select pageNumber from folios where collection=?";
+            //j = DatabaseWrapper.getConnection();
+            ps = j.prepareStatement(folioQuery);
+            ps.setString(1, this.getCollectionName());
+            ResultSet folios = ps.executeQuery();
+            String list = "0";
+            while (folios.next()) {
+                list += "," + folios.getString(1);
+            }
+            String query = "select count(distinct(folio)) from transcription where folio in (" + list + ")";
+            stmt = j.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int count = rs.getInt(1);
+                return count;
+            }
+            return pagecount;
         }
-        String query = "select count(distinct(folio)) from transcription where folio in (" + list + ")";
-        stmt = j.prepareStatement(query);
-        ResultSet rs = stmt.executeQuery();
-        if (rs.next()) {
-            int count = rs.getInt(1);
-
-            return count;
+        finally {
+            DatabaseWrapper.closePreparedStatement(ps);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
-        return pagecount;
-}
-finally{
-    DatabaseWrapper.closePreparedStatement(ps);
-    DatabaseWrapper.closePreparedStatement(stmt);
-    
-}
-
-
     }
-
+    
+    
     /**
      * build html with the columns as highlighted divisions
      * @return a div containing the lines
@@ -1385,9 +1457,9 @@ finally{
             toret += "</div>\n";
         }
         return toret;
-
     }
-
+    
+    
     /**
      * Create columns from the lines by grouping them according to left and width. Each column has the same left and width as the lines that constitute it
      * with a top = the top of the first Line and a height = the bottom of the last Line - the top of the top Line
@@ -1398,7 +1470,6 @@ finally{
         Hashtable<Integer, Line> h = new Hashtable();
         for (int i = 0; i < linePositions.length; i++) {
             h.put(linePositions[i].left, linePositions[i]);
-
         }
         Enumeration e = h.elements();
         while (e.hasMoreElements()) {
@@ -1424,7 +1495,8 @@ finally{
         }
         return linesToRet;
     }
-
+    
+    
     /**
      * @depricated this is from the time before columns were supported...no longer used
      * Save the updated Line positions after sorting them and such
@@ -1451,7 +1523,8 @@ finally{
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
+    
+    
     /**
      * @depricated use update(Line [] lines) instead
      * Insert lines bounded by the given coordinates. All arrays are expected to be the same length
@@ -1478,7 +1551,8 @@ finally{
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
+    
+    
     /**
      * Update the lines for this Folio. Overwrites existing lines
      * @param lines the new lines
@@ -1490,16 +1564,16 @@ finally{
         } catch (SQLException ex) {
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
-
+    
+    
     /**
      * Save the state of this object, by deleting the old and inserting the new.
      * @throws SQLException 
      */
     public void commit() throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             j = DatabaseWrapper.getConnection();
             stmt = j.prepareStatement("Delete from imagepositions where folio=?");
@@ -1516,11 +1590,12 @@ PreparedStatement stmt=null;
                 stmt.execute();
             }
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
     }
-
+    
+    
     /** 
      * Return the Line parsing associated with this page. These are the publicly available, stored ones or the newly parsed ones
      * not ones specific to a project
@@ -1529,7 +1604,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
     public Line[] getlines() {
         return this.linePositions;
     }
-
+    
+    
     /**
      * Calculate the mean Line height for this page. This is useful for padding lines.
      * @return rounded mean height or 25 if there was a problem (25 has been a good default for this historically) 
@@ -1552,7 +1628,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
             return (mean / linePositions.length) * 2;
         }
     }
-
+    
+    
     /**@depricated you are probably trying to render an image of the Line of the ms with a Line of Transcription, so use the Transcription getx, gety etc to draw this
      * 
      * Return a div containing the are of the page image associated with the requested Line
@@ -1565,14 +1642,15 @@ DatabaseWrapper.closePreparedStatement(stmt);
             if (this.archive != null && this.archive.length() > 0) {
                 toret += "<img style=\"position:relative;top:-" + linePositions[lineNum - 1].getTop() + "px;\" src=\"" + this.getImageURLResize(1000) + "\"/>";
             }
-                
+            
         } catch (SQLException ex) {
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, ex);
         }
         toret += "</div>";
         return toret;
     }
-
+    
+    
     /**
      * @deprecated use Folio.getIPRAgreement() instead
      * Retrieve the copyright notice used by this Archive, tailored to include the collection and page info.
@@ -1590,7 +1668,8 @@ DatabaseWrapper.closePreparedStatement(stmt);
         }
         return toret;
     }
-
+    
+    
     /**
      * Retrieve the name of the Archive that houses this MS page
      * @return Archive name for internal use by TPEN to describe the image host that houses the Manuscript images, not the official name of the Repository the MSS belongs to
@@ -1602,14 +1681,14 @@ DatabaseWrapper.closePreparedStatement(stmt);
         }
         return toret;
     }
-
+    
+    
     /**Create a proper shelfmark for this ms page*/
     public String getArchiveShelfMark() {
         return textdisplay.Archive.getShelfMark(archive);
     }
-
     
-
+    
     /**
      * Build OAC rdf Transcription annotations from this page.
      * @param uid user id of the requestor
@@ -1639,7 +1718,7 @@ DatabaseWrapper.closePreparedStatement(stmt);
         Resource viewFrag = model.createResource("http://www.openannotation.org/ns/Annotation");
         Property isPartOf = model.createProperty("http://purl.org/dc/terms/", "isPartOf");
         Resource fullImage = model.createResource("http://t-pen.org/views/" + this.folioNumber);
-
+        
         String[] uuids = new String[transcriptions.length];
         Resource thisPage = model.createResource("http://t-pen.org/transcription/" + this.folioNumber);
         Resource[] items = new Resource[uuids.length];
@@ -1654,7 +1733,7 @@ DatabaseWrapper.closePreparedStatement(stmt);
         }
         toret += "list:\n";
         RDFList l = model.createList(items);
-
+        
         for (int i = 0; i < transcriptions.length; i++) {
             String uuid = uuids[i];
             Resource item = model.createResource("urn:uuid:" + uuid);
@@ -1677,37 +1756,39 @@ DatabaseWrapper.closePreparedStatement(stmt);
         toret += tmp.getBuffer().toString();
         return toret;
     }
-
+    
+    
     /**Create a link to this MS page at the host Archive, not currently implemented*/
     public String getArchiveLink() {
         try {
             return textdisplay.Archive.getURL(folioNumber);
-
         } catch (SQLException ex) {
             Logger.getLogger(Folio.class.getName()).log(Level.SEVERE, null, ex);
         }
+        // @TODO:  Move this to some kind of configuration variable.
         return "http://t-pen.org";
     }
-
+    
+    
     /**Reset the detected lines in the image to whatever the Line detector finds. Useful when the detector improves or someone
     puts bad parsings in the public set*/
     public void reset() throws SQLException {
         Connection j = null;
-PreparedStatement stmt=null;
+        PreparedStatement stmt=null;
         try {
             j = DatabaseWrapper.getConnection();
             stmt = j.prepareStatement("Delete from imagepositions where folio=?");
             stmt.setInt(1, folioNumber);
             stmt.execute();
-
+            
             this.detect(folioNumber, false);
         } finally {
-DatabaseWrapper.closeDBConnection(j);
-DatabaseWrapper.closePreparedStatement(stmt);
+            DatabaseWrapper.closeDBConnection(j);
+            DatabaseWrapper.closePreparedStatement(stmt);
         }
-
     }
-
+    
+    
     /**
      * @deprecated use Manuscript.getNextFolio instead
      * Return the Folio number of the next page, a value of -1 indicates there is no following page
@@ -1723,12 +1804,11 @@ DatabaseWrapper.closePreparedStatement(stmt);
                     return folioNums[i + 1];
                 }
             }
-
         }
         return -1;
-
     }
-
+    
+    
     /**
      * @depricated use Manuscript.
      * Return the Folio number of the previous page, a value of -1 indicates there is no previous page
@@ -1744,12 +1824,13 @@ DatabaseWrapper.closePreparedStatement(stmt);
                     return folioNums[i - 1];
                 }
             }
-
+            
         }
         return -1;
-
+        
     }
-
+    
+    
     /**
      * Retrieve the Archive specific IPR agreement for this image.
      * @return Text of the Archive's IPR agreement

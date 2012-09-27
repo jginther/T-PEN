@@ -16,8 +16,15 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.mail.MessagingException;
+import javax.mail.internet.AddressException;
 import textdisplay.DatabaseWrapper;
 import textdisplay.Folio;
+import textdisplay.Manuscript;
+import textdisplay.mailer;
+import user.User;
 
 /**Handles logging of image requests, tracking of success and failure as well as load times, so we can set user expectations.*/
 public class ImageRequest {
@@ -95,6 +102,10 @@ PreparedStatement ps=null;
  */
 public void completeFail(String msg) throws Exception
     {
+        if(msg==null)
+        {
+            msg="null msg";
+        }
         if(this.id>0)
         {
         long timeElapsed=System.currentTimeMillis()-startTime;
@@ -149,5 +160,53 @@ PreparedStatement ps=null;
             DatabaseWrapper.closeDBConnection(j);
             DatabaseWrapper.closePreparedStatement(ps);
         }
+    }
+    public static void EmailReport(int minutes) throws SQLException
+    {
+        minutes++;
+        String query="select distinct(folio) from imageRequest where succeeded=false and date>DATE_SUB(now(), INTERVAL ? MINUTE) and date<DATE_SUB(now(), INTERVAL 1 MINUTE )";
+        Connection j=null;
+        PreparedStatement ps=null;
+        try{
+            j=DatabaseWrapper.getConnection();
+            ps=j.prepareStatement(query);
+            ps.setInt(1, minutes);
+            ResultSet rs=ps.executeQuery();
+            String body="";
+            while(rs.next())
+            {
+                Folio f=new Folio(rs.getInt(1));
+                Manuscript ms=new Manuscript(rs.getInt(1));
+                body+="\nFolio "+rs.getInt(1)+" "+ms.getShelfMark()+" "+f.getPageName()+" "+f.getImageURL()+"\n";
+            }
+            if(body.compareTo("")==0)
+            {
+                //dont send an empty email
+                return;
+            }
+            body="The following images failed to load in the last "+minutes+" minutes.\n"+body;
+           User[] admins=user.User.getAdmins();
+           mailer m=new mailer();
+           for(User i:admins)
+           {
+                try {
+                    m.sendMail(Folio.getRbTok("EMAILSERVER"), "TPEN@t-pen.org", i.getUname(), "TPEN image issue", body);
+                } catch (MessagingException ex) {
+                    Logger.getLogger(ImageRequest.class.getName()).log(Level.SEVERE, null, ex);
+                } 
+           }
+        }
+        finally
+        {
+            
+        }
+    }
+    public static void main(String [] args) throws SQLException
+    {
+        
+        if(args.length==1)
+        EmailReport(Integer.parseInt(args[0]));
+        else
+            System.out.print("Expecting a single param, the number of minutes worth of image reqeusts to be considered.");
     }
 }

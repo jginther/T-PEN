@@ -96,7 +96,7 @@
                 textdisplay.Manuscript ms = new textdisplay.Manuscript(folioNum);
                 newProject.setFolios(ms.getFolios(), newProject.getProjectID());
 
-                newProject.addLogEntry("Added manuscript " + ms.getShelfMark(), UID);
+                newProject.addLogEntry("<span class='log_manuscript'></span>Added manuscript " + ms.getShelfMark(), UID);
                 if (request.getParameter("import") != null && request.getParameter("import").compareTo("import") == 0) {
                     newProject.importData(UID);
                 }
@@ -137,7 +137,7 @@
                 }
                 newProject.setFolios(allFolios, newProject.getProjectID());
                 textdisplay.Manuscript ms = new textdisplay.Manuscript(folioNum);
-                newProject.addLogEntry("Added manuscript " + ms.getShelfMark(), UID);
+                newProject.addLogEntry("<span class='log_manuscript'></span>Added manuscript " + ms.getShelfMark(), UID);
                 //redirect to project page to manage this project
 %>
         <script>

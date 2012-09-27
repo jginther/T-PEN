@@ -13,6 +13,7 @@
 
 package detectimages;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -24,71 +25,25 @@ public class PaleoRunner
 {
     public static void main(String [] args)
     {
-      if(args[0].compareTo("processImages")==0){
-            //args=new String[]{"/usr/parker"};
-            //first process the images
-          String threads="4";
-          if(args.length==3)
-              threads=args[2];
-            String[] p = new String[]{"processImages",args[1],threads};
-        try {
-            
-            blob.main(p);
-        } catch (IOException ex) {
-            Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        }
-       
-           if(args[0].compareTo("assignments")==0){
-            //build the assignment files
-
-            String[] p = new String[]{"assignments",args[1],"10000000"};
-        try {
-            
-            blob.main(p);
-        } catch (IOException ex) {
-            Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        }
-            //if(true)return;
-            //run the comparisons
-      if(args[0].compareTo("run")==0){
-          String threads="4";
-          if(args.length==6)
-              threads=args[5];
-            String []p = new String[]{args[1],args[2],args[3],args[4],threads};
-        
-            try {
-                try {
-                    blob.main(p);
-                } catch (IOException ex) {
-                    Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            } catch (SQLException ex) {
-                Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
+        //process a folder full of images, generating data files in the specified data folder, using the same file structure as we found in the images folder
+        if(args[0].compareTo("processImages")==0)
+        {
+            String imagePath=args[1];
+            File imageFolder=new File(imagePath);
+            File [] dirs=imageFolder.listFiles();
+            for(File dir:dirs)
+            {
+                //process this dir
+                
             }
-          }
-            //now load the results
-      try{
-            if(false)
-            overloadLoader.main(args);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(PaleoRunner.class.getName()).log(Level.SEVERE, null, ex);
         }
-
-
-
+        if(args[0].compareTo("compare")==0)
+        {
+            
+        }
+        if(args[0].compareTo("crosscompare")==0)
+        {
+            
+        }
     }
 }

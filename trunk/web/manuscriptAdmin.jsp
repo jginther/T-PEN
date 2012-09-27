@@ -28,9 +28,8 @@
             #removeUser a {display: block;border:solid thin transparent;}
             label {font-weight: normal;width: 100%;padding: 2px;}
             #results {font-weight: bold;font-size: 16px;text-align: center;}
-            #imagePreview,#imageSelect {width:100%;}
-/*            .returnButton {display:inline-block;}*/
-        </style>
+            #imagePreview,#imageSelect {width:100%}
+       </style>
         <script type="text/javascript">
             $(function(){
 //                $("#updateMetadata,#grantAccess").find("input[type='submit']")
@@ -116,8 +115,9 @@ else
         if(isRestricted){ //prevent NPE if ms has no controlling user
         if(ms.getControllingUser().getUID()!=UID && !thisUser.isAdmin())
                 {
-            out.print("You are not the controlling user for this document!");
-            return;
+                String errorMessage = thisUser.getFname() + ", you are not the controlling user for this manuscript.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
+                return;
             }
            }
    %>
@@ -126,7 +126,17 @@ else
             <div id="content">
                 <h1><script>document.write(document.title); </script></h1>
                 <div id="main" class="ui-tabs ui-widget ui-widget-content ui-corner-all">
-        <h3 class="ui-widget-header ui-tabs ui-corner-all ui-state-default"><%out.print(ms.getShelfMark());%></h3>
+        <h3 class="ui-widget-header ui-tabs ui-corner-all ui-state-default"><%
+        String headerText = ms.getShelfMark();
+        if (ms.getControllingUser() != null) {
+            User controllingUser = ms.getControllingUser();
+            String cUser = controllingUser.getFname() + " " 
+                    + controllingUser.getLname() 
+                    + " (" + controllingUser.getUname() + ")";
+            headerText += " controlled by "+cUser;
+        }
+        out.print(headerText);
+   %></h3>
                     <div id="results"></div>
  <%
          if(request.getParameter("submitted")!=null) {           
@@ -190,7 +200,7 @@ else
             }
         if(request.getParameterValues("imgName[]") != null){
             // change names of images
-            if (ms.getControllingUser().getUID() == thisUser.getUID()){
+            if ((ms.getControllingUser().getUID() == thisUser.getUID()) || thisUser.isAdmin()){
                 String [] imageNames = request.getParameterValues("imgName[]");
 //                int imageNum = -1;
 //                String imageName = "undefined";
@@ -205,9 +215,9 @@ else
                 out.print("$('#results').addClass('ui-state-active ui-corner-all').html('Image names updated.')");
                 out.print("</script>");
              } else {
-                out.print("<script>");
-                out.print("$('#results').addClass('ui-state-error ui-corner-all').html('You are not the controlling user.')");
-                out.print("</script>");
+                String errorMessage = thisUser.getFname() + ", you are not the controlling user for this manuscript.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
+                return;
              }
         }
         %>
@@ -240,8 +250,8 @@ else
         </div>
         <form id="grantAccess" action="manuscriptAdmin.jsp?ms=<%out.print(ms.getID());%>" method="post" class="left clear-left ui-widget-content ui-corner-br ui-corner-tl">
             <h3>Grant Access</h3>
-                Select the person you wish to grant access to:
-            <select name="email">
+                Select the person you wish to grant access to:<br />
+                <select name="email" class="combobox">
                 <%
 user.User [] activeUsers = user.User.getAllActiveUsers();
                                for (int i = 0; i < activeUsers.length; i++) {

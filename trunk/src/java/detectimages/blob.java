@@ -38,8 +38,7 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -675,18 +674,7 @@ public static class ImagePanel2 extends JComponent {
        }
     }
 }
-/**@Depricated use imageHelpers.readAsBufferedImage*/
-public static BufferedImage readAsBufferedImage(String filename) {
-    try {
-       FileInputStream fis = new FileInputStream(filename);
-       JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(fis);
-       BufferedImage bi = decoder.decodeAsBufferedImage();
-       return bi;
-    } catch(Exception e) {
-       System.out.println(e);
-       return null;
-    }
- }
+
 public int getX()
 {
 	return x;
@@ -1029,6 +1017,7 @@ public static Vector<blob> getBlobs(String filename) throws FileNotFoundExceptio
                 thisOne.width=maxX;
                 thisOne.height=maxY;
                 thisOne.matrixVersion=new matrixBlob(thisOne);
+                //thisOne.blockVersion=new BlockBlob(thisOne.matrixVersion);
                 thisOne.altVersion=new altBlob(thisOne);
                 blobs.add(thisOne);
                 thisOne.id=idCounter;
@@ -1107,6 +1096,7 @@ String fileName=filename.split("/")[filename.split("/").length-1];
                 thisOne.width=matrix.length;
                 thisOne.height=matrix[0].length;
                 thisOne.matrixVersion=new matrixBlob(matrix,thisOne.size);
+                //thisOne.blockVersion=new BlockBlob(thisOne.matrixVersion);
                 //thisOne.matrixVersion.drawBlob(img, thisOne.x, thisOne.y, 0xff0000);
                 thisOne.altVersion=new altBlob(thisOne);
                 blobs.add(thisOne);
@@ -1176,7 +1166,7 @@ String fileName=filename.split("/")[filename.split("/").length-1];
 
 }
 /**Quick method for reading a file in and spliting by line*/
-    private static String[] readFileIntoArray(String file) {
+    public static String[] readFileIntoArray(String file) {
         String[] toret = null;
        
         Vector<String> v = new Vector();

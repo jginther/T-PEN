@@ -4,6 +4,8 @@
     Author     : jdeerin1
 --%>
 
+<%@page import="java.util.Arrays"%>
+<%@page import="java.util.List"%>
 <%@page import="user.User" import="user.Group"  contentType="text/html; charset=UTF-8"  pageEncoding="UTF-8"%>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
    "http://www.w3.org/TR/html4/loose.dtd">
@@ -34,6 +36,14 @@
             {$(this).parent().addClass("strikeout");},
             function(){$(this).parent().removeClass("strikeout");}
     );
+        $('.promoteUser').click(function(){
+            var name = $(this).parent('li').text();
+            var nIn = name.indexOf('Remove');
+            if (nIn > 3) name = name.substring(0, nIn-1);
+            var cfrm = confirm('This action will grant '+name+
+                ' complete access as a Group Leader and cannot be undone.\n\nAre you sure?');
+            return cfrm;
+        });
 });
         </script>
 </head>
@@ -72,8 +82,9 @@ if(request.getParameter("projectID")!=null)
     {
     if(!thisGroup.isMember(UID))
         {
-        out.print("<a href=\"/\" class=\"error ui-state-error\"><span class=\"ui-icon ui-icon-alert left\"></span>You are not a member of that group!</a>");
-        return;
+                String errorMessage = thisUser.getFname() + ", you are not a member of this group.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
+                return;
         }
     }
     catch (NumberFormatException e)
@@ -93,6 +104,17 @@ if(request.getParameter("projectID")!=null)
                 }
         }
     
+    //Was this a user promotion request?
+    if(request.getParameter("usr")!=null && request.getParameter("act")!=null && request.getParameter("act").compareTo("promote")==0)
+        {
+        
+            //Do they have permission to promote this person? That would be either isAdmin==true or current user=group leader
+            if(thisGroup.isAdmin(UID))
+                {             
+                    thisGroup.setUserRole(UID,Integer.parseInt(request.getParameter("usr")),Group.roles.Leader);
+                }
+        }
+    
     //Was this a user add request?
     if( request.getParameter("uname")!=null)
         {
@@ -107,23 +129,24 @@ if(request.getParameter("projectID")!=null)
     //now list the users, and give the option of adding another
     out.print("<h3>Existing group members</h3>");
     User[] groupMembers=thisGroup.getMembers();
-    User[] groupLeader=thisGroup.getLeader();
+    boolean isLeader = thisGroup.isAdmin(thisUser.getUID());
      out.print("<ol>");
      for(int i=0;i<groupMembers.length;i++)
         {
-        if(groupLeader[0].getUID()==groupMembers[i].getUID())
-            out.print("<li>"+groupMembers[i].getUname()+"&nbsp;<span class='loud'>Group Leader</span></li>");
+        boolean isLeadership = thisGroup.isAdmin(groupMembers[i].getUID());
+        if(isLeadership)
+            out.print("<li><span class='loud'>Group Leader</span>&nbsp;"+groupMembers[i].getUname()+"</li>");
         else
             {
-            if(groupLeader[0].getUID()==UID)
-            out.print("<li>"+groupMembers[i].getUname()+"&nbsp;<a class=\"delete\" href=\"groups.jsp?act=rem&projectID="+projectID+"&usr="+groupMembers[i].getUID()+"\">Remove member</a></li>");
+            if(isLeader)
+            out.print("<li><a class='promoteUser' title='Promote this user to Group Leader' href='groups.jsp?act=promote&projectID="+projectID+"&usr="+groupMembers[i].getUID()+"' ><span class='ui-icon ui-icon-flag'></span></a>"+groupMembers[i].getUname()+"&nbsp;<a class=\"delete\" href=\"groups.jsp?act=rem&projectID="+projectID+"&usr="+groupMembers[i].getUID()+"\">Remove member</a></li>");
             else
                 out.print("<li>"+groupMembers[i].getUname()+"&nbsp;</li>");
             }
         
         }
     out.print("</ol>");
-            if(groupLeader[0].getUID()==UID){
+            if(isLeader){
                 if (!(thisProject.containsUserUploadedManuscript() && (groupMembers.length > 4))){                   
  %>
         <h4>Add a new group member (must have a T&#8209;PEN account)</h4>

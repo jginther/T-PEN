@@ -206,7 +206,7 @@ public class TagFilter {
         Font bold=new Font(bf, 12, Font.BOLD);
         Font underlined=new Font(bf, 12, Font.UNDERLINE);
 
-            String chunkBuffer=""; //holds the next bit of content that will be added to the pdf as a chunk
+            StringBuilder chunkBuffer=new StringBuilder(""); //holds the next bit of content that will be added to the pdf as a chunk
             styles chunkStyle= null ; //the style to be applied to chunkBuffer when it gets added to the document
             String chunkTag="";
             Stack <String> wrappingTags=new Stack();
@@ -224,7 +224,6 @@ public class TagFilter {
                     //if this was a self closing tag, dont do anything
                     if(tagTextBuffer.contains("/>"))
                     {
-                        System.out.print("Skipping auto closing tag "+tagTextBuffer+"\n");
                         tagTextBuffer="";
                     }
                     else
@@ -237,13 +236,13 @@ public class TagFilter {
                             else
                                 System.out.print(" closing tag "+tagTextBuffer+" with style null"+"\n");
                             if(chunkStyle==styles.paragraph)
-                                chunkBuffer="\n"+chunkBuffer;
-                            Chunk c=new Chunk(chunkBuffer);
+                                chunkBuffer=new StringBuilder("\n"+chunkBuffer);
+                            Chunk c=new Chunk(chunkBuffer.toString());
                             styleChunk(c,chunkStyle);
                             
                             if(chunkStyle != styles.remove)
                             para.add(c);
-                            chunkBuffer="";
+                            chunkBuffer=new StringBuilder("");
                             chunkStyle=null;
                             chunkTag="";
                             if(!wrappingStyles.empty())
@@ -270,8 +269,8 @@ public class TagFilter {
                                     //this tag is nested in a tag that was already applying styling. Add this chunk to the pdf and put the tag/style
                                     //for the previous tag on the stack, so when this new tag ends, the previous styling will resume.
                                         if(chunkStyle==styles.paragraph)
-                                chunkBuffer="\n"+chunkBuffer;
-                                        Chunk c=new Chunk(chunkBuffer);
+                                chunkBuffer=new StringBuilder("\n"+chunkBuffer);
+                                        Chunk c=new Chunk(chunkBuffer.toString());
                                         styleChunk(c,chunkStyle);
                                         if(chunkStyle != styles.remove)
                                         para.add(c);
@@ -279,15 +278,15 @@ public class TagFilter {
                                         wrappingTags.add(chunkTag);
                                         chunkTag=tagName;
                                         chunkStyle=tagStyles[i];
-                                        chunkBuffer="";
+                                        chunkBuffer=new StringBuilder("");
                                     }
                                     else
                                     {
-                                        Chunk c=new Chunk(chunkBuffer);
+                                        Chunk c=new Chunk(chunkBuffer.toString());
                                         para.add(c);
                                         chunkTag=tagName;
                                         chunkStyle=tagStyles[i];
-                                        chunkBuffer="";
+                                        chunkBuffer=new StringBuilder("");
                                     }
                                 }
                             }
@@ -304,18 +303,17 @@ public class TagFilter {
                     if(inTag)
                     {
                         //if we hit another < before hitting a > this was not a tag, so add the tagTextBuffer to the chunk. It was simply conent.
-                        chunkBuffer+=tagTextBuffer;
+                        chunkBuffer.append(tagTextBuffer);
                         tagTextBuffer="";
                     }
                     inTag=true;
                 }
                 if(!inTag && text.charAt(charCounter)!='>')
                 {
-                    chunkBuffer+=text.charAt(charCounter);
-                    System.out.print(text.charAt(charCounter));
+                    chunkBuffer.append(text.charAt(charCounter));
                 }
             }
-            Chunk c=new Chunk(chunkBuffer);
+            Chunk c=new Chunk(chunkBuffer.toString());
             para.add(c);
             doc.newPage();
             doc.add(para);
@@ -389,7 +387,7 @@ public class TagFilter {
             Stack <RtfText> paragraphs=new Stack();
             String content=text;
 
-            String chunkBuffer=""; //holds the next bit of content that will be added to the pdf as a chunk
+            StringBuilder chunkBuffer=new StringBuilder(""); //holds the next bit of content that will be added to the pdf as a chunk
             styles chunkStyle= null ; //the style to be applied to chunkBuffer when it gets added to the document
             String chunkTag="";
             Stack <String> wrappingTags=new Stack();
@@ -420,9 +418,9 @@ public class TagFilter {
                                 System.out.print(" closing tag "+tagTextBuffer+" with style null and content "+chunkBuffer+"\n");
                             if(chunkStyle != styles.remove)
                             {
-                            paragraphs.add(applyRTFStyle(chunkStyle, chunkBuffer));
+                            paragraphs.add(applyRTFStyle(chunkStyle, chunkBuffer.toString()));
                             }
-                            chunkBuffer="";
+                            chunkBuffer=new StringBuilder("");
                             
                             chunkTag="";
                             if(!wrappingStyles.empty())
@@ -454,20 +452,20 @@ public class TagFilter {
                                     //this tag is nested in a tag that was already applying styling. Add this chunk to the pdf and put the tag/style
                                     //for the previous tag on the stack, so when this new tag ends, the previous styling will resume.
                                                                     //if(chunkStyle != styles.remove)
-                            paragraphs.add(applyRTFStyle(chunkStyle, chunkBuffer));
+                            paragraphs.add(applyRTFStyle(chunkStyle, chunkBuffer.toString()));
                                         wrappingStyles.add(chunkStyle);
                                         wrappingTags.add(chunkTag);
                                         System.out.print("Stack add "+chunkTag+" with style "+chunkStyle+"\n");
                                         chunkTag=tagName;
                                         chunkStyle=tagStyles[i];
-                                        chunkBuffer="";
+                                        chunkBuffer=new StringBuilder("");
                                     }
                                     else
                                     {
                                         paragraphs.add(text(chunkBuffer));
                                         chunkTag=tagName;
                                         chunkStyle=tagStyles[i];
-                                        chunkBuffer="";
+                                        chunkBuffer=new StringBuilder("");
                                     }
                                 }
                             }
@@ -484,20 +482,20 @@ public class TagFilter {
                     if(inTag)
                     {
                         //if we hit another < before hitting a > this was not a tag, so add the tagTextBuffer to the chunk. It was simply conent.
-                        chunkBuffer+=tagTextBuffer;
+                        chunkBuffer.append(tagTextBuffer);
                         tagTextBuffer="";
                     }
                     inTag=true;
                 }
                 if(!inTag && text.charAt(charCounter)!='>')
                 {
-                    chunkBuffer+=text.charAt(charCounter);
+                    chunkBuffer.append(text.charAt(charCounter));
                     
                 }
             }
             if(chunkBuffer.length()>0)
             {
-                paragraphs.add(applyRTFStyle(styles.none, chunkBuffer));
+                paragraphs.add(applyRTFStyle(styles.none, chunkBuffer.toString()));
             }
              Stack <RtfPara> textParas=new Stack();
              RtfText [] textarray=new RtfText[paragraphs.size()];

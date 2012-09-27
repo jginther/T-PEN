@@ -25,7 +25,6 @@ import org.xml.sax.SAXException;
 import textdisplay.Manuscript;
 import textdisplay.Project;
 import textdisplay.TagFilter;
-import textdisplay.transcriptionPage;
 import utils.XmlSchema;
 import utils.XmlSchema.types;
 

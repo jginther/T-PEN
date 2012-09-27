@@ -86,12 +86,12 @@ button::-moz-focus-inner {
     -o-transition: width .25s, height .5s, left .25s, top .5s;
     transition: width .25s, height .5s, left .25s, top .5s;
 }
-#imgTop,#imgBottom {
+/*#imgTop,#imgBottom {
     -webkit-transition: height .25s, width .5s;
     -moz-transition: height .25s, width .5s;
     -o-transition: height .25s, width .5s;
     transition: height .25s, width .5s;
-}
+}*/
 #imgTopImg,#imgBottom img {
     -webkit-transition: left .5s, top .5s, width .5s;
     -moz-transition: left .5s, top .5s, width .5s;
@@ -99,10 +99,10 @@ button::-moz-focus-inner {
     transition: left .5s, top .5s, width .5s;
 }
 .transcriptlet,#blogLink {
-    -webkit-transition: opacity .5s, top .5s,visibility .5s;
-    -moz-transition: opacity .5s, top .5s,visibility .5s;
-    -o-transition: opacity .5s, top .5s,visibility .5s;
-    transition: opacity .5s, top .5s,visibility .5s;
+    -webkit-transition: opacity .5s, top .5s;
+    -moz-transition: opacity .5s, top .5s;
+    -o-transition: opacity .5s, top .5s;
+    transition: opacity .5s, top .5s;
 }
 .ui-resizable:not(.ui-resizable-disabled),.noTransition {
     -webkit-transition: all 0s !important;
@@ -110,12 +110,12 @@ button::-moz-focus-inner {
     -o-transition: all 0s !important;
     transition: all 0s !important;
 }
-#wrapper,#tools {
-    -webkit-transition: width 1s !important;
-    -moz-transition: width 1s !important;
-    -o-transition: width 1s !important;
-    transition: width 1s !important;
-}
+/*#wrapper,#tools {
+    -webkit-transition: width .75s !important;
+    -moz-transition: width .75s !important;
+    -o-transition: width .75s !important;
+    transition: width .75s !important;
+}*/
 .resizeHelper {
     background: rgba(0,0,0,.3);
     border-right: 2px dotted black;
@@ -134,8 +134,9 @@ td {
     -moz-box-sizing:content-box;
     box-sizing:content-box;
 }
-#noscript {                                 /* Javascript is turned off */
+#noscript, #urgentError {                                 /* errors, urgent notices */
     position: fixed;
+    overflow: visible;
     box-shadow:0 5px 15px black;
     -moz-box-shadow:0 5px 15px black; 
     width: 300%; 
@@ -146,8 +147,27 @@ td {
     font-weight: bold;
     padding: 1em;
     top:50%;
-    left:-100%;}
- #sharing {                      /* Social links */
+    left:-100%;
+    z-index: 40;}
+#urgentError a {
+    color: gold;
+    text-decoration: none;
+}
+#urgentError a:hover {
+    text-decoration: underline;
+}
+#trexHead {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    pointer-events: none;
+    background: rgba(0,0,0,.7) url(../images/trexhead.png) right center no-repeat fixed;
+    background-size: 100%;
+    z-index: 39;
+}
+#landing2 #sharing {                      /* Social links */
     position: absolute;
     right:4px;
     top:-30px;
@@ -1263,6 +1283,43 @@ p span.label {
     right: -3px;
     border: none 0;
     text-shadow: 0 0 0 transparent;
+}
+
+.combobox+.ui-combobox {
+    position: relative;
+    display: block;
+}
+.combobox+.ui-combobox .ui-combobox-toggle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    margin-left: -1px;
+    padding: 0;
+    /* adjust styles for IE 6/7 */
+    *height: 1.7em;
+    *top: 0.1em;
+}
+.combobox+.ui-combobox .ui-combobox-input {
+    margin: 0;
+    padding: 0.3em;
+    background: white;
+    clear:left
+}
+.ui-combobox {width:100%}
+.ui-autocomplete {
+    max-height: 300px;
+    max-width: 70%;
+    box-shadow: 2px 2px 4px black;
+    overflow: auto;
+}
+.ui-combobox-input {width:90%}
+.ui-menu-item a.ui-corner-all,.ui-menu-item a.ui-corner-all:hover {
+    border: none;
+    background: transparent;
+    text-shadow: none;
+    display: block;
+    cursor: default;
+    text-align: left;
 }
 .returnButton {
     margin:-1px 0 15px 15px;

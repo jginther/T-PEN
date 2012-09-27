@@ -1,3 +1,4 @@
+<%@page import="com.hp.hpl.jena.sparql.function.library.substr"%>
 <%@page import="textdisplay.Archive"%>
 <%@page import="servlets.annotation"%>
 <%@page import="user.*"%>
@@ -70,7 +71,7 @@
                         user.Group newgroup = new user.Group(tmpProjName, UID);
                         textdisplay.Project newProject = new textdisplay.Project(tmpProjName, newgroup.getGroupID());
                         newProject.setFolios(mss.getFolios(), newProject.getProjectID());
-                        newProject.addLogEntry("Added manuscript " + mss.getShelfMark(), UID);
+                        newProject.addLogEntry("<span class='log_manuscript'></span>Added manuscript " + mss.getShelfMark(), UID);
                         thisProject=newProject;
                         projectID=thisProject.getProjectID();
                         newProject.importData(UID);
@@ -88,6 +89,10 @@
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.js"></script> 
         <script type="text/javascript" src="js/tpen.js"></script>
         <script type="text/javascript" src="js/transcription.js"></script>
+        
+<!--<link rel="stylesheet" type="text/css" href="jwysiwyg/jquery.wysiwyg.css" />
+<script type="text/javascript" src="jwysiwyg/jquery.wysiwyg.js"></script>        -->
+        
         <style type="text/css">
             body,#wrapper{height: 100%;width:100%;opacity:1;}
             #parsingLoader {z-index: 50;visibility: visible !important;position: fixed; width: 100%;height:100%;background-color: #69ACC9;top:33%;}
@@ -199,7 +204,7 @@
             .theText { min-height: 60px;}
             .notes { min-height: 2.5em;height:2.5em;}
             #options {padding:2px;width:auto;min-width: 50px;margin:0 auto;max-height:200px;overflow: hidden;}
-            #options a, #options input, #tools a,#tools .exitPage {padding:1px;min-width: 60px;min-height: 18px;margin:0 -2px;font-size: 12px;line-height: 18px;}
+            #options a, #options input, #tools a,#tools .exitPage,#annotation_toolbar button {padding:1px;min-width: 60px;min-height: 18px;margin:0 -2px;font-size: 12px;line-height: 18px;}
             #options > div {padding:2px 5px;margin:0 auto;}
             #popin {clear:both;overflow:visible;padding:2px;width:auto;position:relative; border:none !important;}
             #popin div {display: inline-block;}
@@ -239,22 +244,24 @@
             .destroyTag {position:absolute;top:-15px;right:0;}
             .loadingStatus {position:absolute;color: white; top:25%;left:30%;font-family: 'Nova Cut',sans-serif;font-size: 24px;text-shadow:0px 1px 0 #69ACC9;}
             #loadingCompare {position:relative;}
-            .previewPage {border:thin solid black;clear: both; padding: 10px;margin: 0 2px 5px 10px; overflow: auto; background: white;
+            .previewPage {border:thin solid black; margin-bottom: 5px;clear: both; padding: 10px;overflow: auto; background: white;
                             -moz-box-shadow: -1px -1px 3px rgba(0,0,0,.4);
                             -webkit-box-shadow: -1px -1px 3px rgba(0,0,0,.4); 
                             box-shadow:-1px -1px 3px rgba(0,0,0,.4);
             }
             .previewFolioNumber {float: left;font-weight: bold; display: block;padding-left: 20px;}
+            .previewAnnotations {float: left;width:100%;background: wheat;}
+            .previewAnnoText {display: block;}
             .previewLine{float: left;clear:left;display:block;width:100%;}
             .previewLine:nth-child(even) { background-color: whitesmoke; }
             .previewLine:nth-child(odd) { background-color: lightgray; }
             .previewLineNumber {font-style: italic;float: left;width:10%;color: #707070;}
             .previewText {font-style: normal;float: left;width: 90%;min-height: 14px;}
             .previewLinebreak {float: left;color:gray;}
-            .previewNotes {float: left; color:#4863A0;width: 90%;margin-left: 10%;}
-            #previewDiv{position:relative;overflow: auto;clear:both;}
+            .previewNotes {float: left; display: none; color:#4863A0;width: 90%;margin-left: 10%;}
+            #previewDiv{position:relative;overflow: auto;clear:both;padding: 0 2px 5px 5px;}
             #previewDiv span{position: relative;}
-            #previewSplit {overflow: auto;height:100%;}
+            #previewSplit {overflow: hidden;height:100%;}
             .previewSave {position: absolute; right:0;font-size: 80%;cursor: pointer;z-index: 4;}
             .previewTag {color:#488AC7;display:inline-block;}
             #saveReport,#contribution {position: absolute; z-index: 4;width:18em;cursor: pointer;bottom:0;right:0;color:#226683;text-transform: capitalize;padding: 1px;margin: 0px;max-height:18px;overflow: hidden;}
@@ -307,11 +314,17 @@
             #newColumnCount span{font-size: 32px;}
             #createColumnInst .buttons {max-width:246px;margin:0 auto;}
             #createColumnInst .buttons button {min-width: 120px;}
-            #iprAccept,#requestAccess {position: fixed;left:0;right:0;top:10%;margin:auto;width:90%;max-width: 600px;max-height: 90%;overflow: auto;padding: 5px;
+            #iprAccept,#requestAccess {position: fixed;left:0;right:0;top:10%;margin:auto;width:90%;max-width: 600px;max-height: 400px;overflow: hidden;padding: 5px;z-index: 50;
                 -moz-box-shadow:0 0 45px black;
                 box-shadow:0 0 45px black;}
             #requestAccess textarea {width:100%;height:5em;}
-            #iprAgreement {background-color: whitesmoke;padding: 3px;overflow: auto; max-height: 50%;border: thin inset black;}
+            #requestAccess a.returnButton {position: absolute;bottom: -36px;}
+            #iprAgreement {background-color: whitesmoke;padding: 3px;overflow: auto; max-height: 200px;border: thin inset black;}
+            #iprAgreement h1,#iprAgreement h2,#iprAgreement h3,#iprAgreement h4,#iprAgreement h5,#iprAgreement h6{
+                text-shadow: none; 
+                color: #226683;
+                font-family: Tahoma, Geneva, sans-serif;
+            }
             #lineResizing,#progress{position: fixed;right:10px;z-index: 500;padding: 15px;display: none;
                 -moz-box-shadow: 0 0 15px black;
                 box-shadow: 0 0 15px black;
@@ -413,10 +426,10 @@
             .glossary {position: relative;border: dotted 1px transparent; border-bottom: dotted 1px rgba(0,100,0,.7);cursor: help;display: inline-block;}
             .glossary:hover {color: rgb(0,100,0);border: solid 1px rgba(0,100,0,.7);border-bottom: transparent;border-top-left-radius:3px;border-top-right-radius:3px;padding:2px;margin:-2px;}
             #lbText {white-space: pre;}
-            #annotations {position: relative;clear: both;}
-            .annotation {position: absolute;min-height: 5px;min-width:5px;box-shadow:0 0 2px 1px black;z-index: 2;}
+/*            #annotations {position: relative;clear: both;}*/
+/*            .annotation {position: absolute;min-height: 5px;min-width:5px;box-shadow:0 0 2px 1px black;z-index: 2;}*/
             .newAnno,.ui-resizable-resizing {box-shadow:0 0 4px 2px goldenrod !important;border:none !important;}
-            .deleteAnno {box-shadow:0 0 2px 2px red !important;}
+/*            .deleteAnno {box-shadow:0 0 2px 2px red !important;}
             .adjustAnno {box-shadow:0 0 4px navy;}
             .adjustAnno:hover {box-shadow:0 0 4px 2px navy;cursor:move;}
             .activeAnnotation {box-shadow:0 0 4px 2px gold;}
@@ -424,9 +437,9 @@
                 display: none;padding: 4px;background-color: #69ACC9;
                 box-shadow: -1px -1px 5px black;text-shadow: 0 1px #367996;}
             #annotationInfo textarea {margin:3px;max-height: 3em;overflow: auto;}
-            #annotationInfo h6 {color:white;}
+            #annotationInfo h6 {color:white;}*/
             .topAdjust {bottom:auto !important;top:25px !important;}
-            .showAnno {background-color: rgba(255,255,0,.4)}
+/*            .showAnno {background-color: rgba(255,255,0,.4)}*/
             .shrink {white-space: nowrap;}
             .shrink.wBtn {min-width:18px !important;width:18px !important;color: transparent !important;z-index: 7;}
             .wBtn:hover {z-index: 8;}
@@ -440,6 +453,10 @@
             #overlay{display: none;}
             #overlayNote{position: fixed;top:2%;right:2%;white-space: nowrap;font-size: large;font-weight: 700;font-family: monospace;text-shadow:1px 1px 0 white;}
             #fullImg,#compareDiv,#annotationDiv{height:100%;}
+            #aLinkFrame {position: absolute;top:0;left:0;z-index: 0;}
+            #aShowLink {width:100px;display: inline-block;}
+            #aShowLink:after{display: none;} /* break out of clearfix */
+/*            #aLink {clear:left;display:none;}  DEBUG until ready for annotation links */
         </style>
         <script type="text/javascript">document.write('<style type="text/css">body {visibility:hidden;}\n#historyViewer,[id^="split"],[id$="Split"] {width:'+Page.width()*.4+'px;}</style>');</script>
 
@@ -471,7 +488,7 @@
             textdisplay.Archive thisArchive;
             thisArchive = new textdisplay.Archive(archive);
             String archiveMsg = thisArchive.message();
-            boolean hasMessage = (archiveMsg.length()>0);
+            boolean hasMessage = (archiveMsg!=null && archiveMsg.length()>0);
             textdisplay.Manuscript thisMS = new textdisplay.Manuscript(thisFolio.getFolioNumber());
             Group thisGroup = new Group(thisProject.getGroupID());
             Boolean isMember,permitOACr,permitOACw,permitExport,permitCopy,permitModify,permitAnnotation,permitButtons,permitParsing,permitMetadata,permitNotes,permitRead;
@@ -503,7 +520,8 @@
             out.println("permitRead = "+permitRead);
             out.println("</script>");
             if (!thisGroup.isMember(UID) && !permitRead){
-                out.print("You are not a member of this group.<br/><a href='index.jsp'>Return to T&#8209;PEN Homepage</a>");
+                String errorMessage = thisUser.getFname() + ", you are not a member of this project.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
                 return;
             }
 %>
@@ -532,6 +550,7 @@
             }%>
   $(function() {
       $(".accordion").children("div").hide();
+//      $("#aShowLink").click(Annotation.showLink);
       $('#overlay').on("click",function(event){
           console.log(event.target);
           $(this).hide(250);
@@ -604,37 +623,46 @@
             document.write(pageLoader);
         </script>
         <%
-        boolean isPrivateCollaborator = thisGroup.isMember(UID) && thisProject.containsUserUploadedManuscript();
+        boolean isPrivate = thisProject.containsUserUploadedManuscript();
+        boolean isPrivateCollaborator = thisGroup.isMember(UID) && isPrivate;
         boolean isAuthorized = thisMS.isAuthorized(thisUser);
             if (thisMS.isRestricted() && !isPrivateCollaborator) { 
-                if (!isPrivateCollaborator && !isAuthorized) {
+                if (!isPrivateCollaborator && isPrivate) {
                 %>
             <div id="requestAccess" class="ui-widget ui-corner-all ui-widget-content">
                 <h2 class="ui-widget-header ui-corner-all ui-state-error">Private Collection</h2>
                 <div class="ui-state-error-text" style="text-align: center;">
-                    <span style="display: inline-block;" class="ui-icon ui-icon-alert"></span><%out.print(thisUser.getFname()+" "+thisUser.getLname()+" ("+thisUser.getUname()+")");%>does not have permission to view this manuscript!
+                    <span style="display: inline-block;" class="ui-icon ui-icon-alert"></span>Private Collection
                 </div>
                 <br />
                 <p>This image is part of a private user collection and may not 
-                    be viewed. Users may invite up to 5 collaborators to the
+                    be viewed. Users may invite up to 5 collaborators to each
                     project containing private images.</p>
+                <a class="returnButton" href="index.jsp">Return Home</a>
             </div>
+                <div id="trexHead"></div>
         <%    return;
                 } else if(!isAuthorized) {
                 %>
             <div id="requestAccess" class="ui-widget ui-corner-all ui-widget-content">
                 <h2 class="ui-widget-header ui-corner-all ui-state-error">Restricted Access</h2>
-                <div class="ui-state-error-text" style="text-align: center;"><span style="display: inline-block;" class="ui-icon ui-icon-alert"></span><%out.print(thisUser.getFname()+" "+thisUser.getLname()+" ("+thisUser.getUname()+")");%>does not have permission to view this manuscript!</div>
+                <div class="ui-state-error-text" style="text-align: center;"><span style="display: inline-block;" class="ui-icon ui-icon-alert"></span><%out.print(thisUser.getFname());%>, you do not have permission to view this manuscript!</div>
                 <br />
                 <form action="requestAccess.jsp" method="POST">
-                    <p>Request access for <%out.print(thisUser.getFname()+" "+thisUser.getLname()+" ("+thisUser.getUname()+")");%> from the TPEN user who controls access to this document.
+                    <%
+                    String controllerHint = thisMS.getControllingUser().getUname();
+                    controllerHint = controllerHint.substring(controllerHint.indexOf('@'));
+                    %>
+                    <p>Request access for <%out.print(thisUser.getFname()+" "+thisUser.getLname()+" ("+thisUser.getUname()+") from the TPEN user ("+controllerHint+")");%> who controls access to this document.
                     <textarea name="reason" placeholder="Add any additional request details."></textarea>
                     <input type="hidden" name="ms" value="<%out.print(thisMS.getID());%>">
                     <input type="hidden" name="projectID" value="<%out.print(projectID);%>">
                     <input class="ui-button tpenButton clear right" type="submit" name="submitted" value="Send Request"/>
                     </p>
                 </form>               
+                <a class="returnButton" href="index.jsp">Return Home</a>
             </div>
+                <div id="trexHead"></div>
         <%    return;
                 }
             }
@@ -644,13 +672,14 @@
             <div id="iprAccept" class="ui-widget ui-corner-all ui-widget-content">
                 <h2 class="ui-widget-header ui-corner-all">Accept IPR Agreement</h2>
                 <p>Please read and accept the IPR agreement below to access <span class="loud"><%out.print(thisFolio.getCollectionName() + " at "+ thisFolio.getArchive());%></span>. You only need to do this once.</p>
-                <p id="iprAgreement" class="notice"><%out.print(thisFolio.getIPRAgreement());%></p>
+                <div id="iprAgreement" class="notice"><%out.print(thisFolio.getIPRAgreement());%></div>
                     <span class="right small"><%out.print(thisUser.getFname()+" "+thisUser.getLname()+" ("+thisUser.getUname()+")");%></span>
                     <div class="clear right buttons">
                     <button class="ui-button tpenButton" onclick="document.location='transcription.jsp?p=<%out.print(thisFolio.getFolioNumber() + "&projectID=" + projectID + "&acceptIPR=true");%>'">I Agree</button>
                     <button class="ui-button tpenButton" onclick="document.location='index.jsp'">I do not agree</button>
                 </div>
             </div>
+                    <div id="trexHead"></div>
         <%  return;
             }
             Transcription[] thisText;
@@ -801,15 +830,15 @@
                     <input class="lineLeft" type="hidden" value="<%out.print(thisText[i].getX());%>" />
                     <input class="lineTop" type="hidden" value="<%out.print(thisText[i].getY());%>" />
                     <%
-                    out.println("<span id='addNote"+(i+1)+"' onclick='Screen.notesToggle(\""+(i+1)+"\");' class='addNotes wRight'><span class='ui-icon ui-icon-note right'></span>Add Notes</span>");
+                    out.println("<span class='addNotes wRight'><span class='ui-icon ui-icon-note right'></span>Add Notes</span>");
 %><!--                    <span class="lineNav"></span>-->
                     <%
                     textdisplay.ArchivedTranscription [] oldVersions=textdisplay.ArchivedTranscription.getAllVersions(thisText[i].getLineID());
                     %>
-                    <textarea id="transcription<%out.print((i+1));%>" class="ui-corner-all theText" tabindex="<%out.print((1000+i*10));%>" onfocus="Interaction.newFocus(this);"<%if(!permitModify && !isMember)out.print(" readonly ");%>onkeydown="return Interaction.keyhandler(event);"><%out.print(thisText[i].getText().replace("&amp;", "&"));%></textarea>
+                    <textarea id="transcription<%out.print((i+1));%>" class="ui-corner-all theText" <%if(!permitModify && !isMember)out.print(" readonly ");%>onkeydown="return Interaction.keyhandler(event);"><%out.print(thisText[i].getText().replace("&amp;", "&"));%></textarea>
                     <div class="xmlClosingTags" id="closeTags<%out.print((i+1));%>">
                     </div>
-                    <textarea style="display:none;" id="notes<%out.print((i+1));%>" class="ui-corner-all notes" onfocus="Interaction.newFocus(this);"><%if(!permitModify && !isMember)out.print(" readonly ");%><%if (thisText[i].getComment() != null && thisText[i].getComment().length() > 0) {out.print(thisText[i].getComment());}%></textarea>                          
+                    <textarea style="display:none;" id="notes<%out.print((i+1));%>" class="ui-corner-all notes" <%if(!permitModify && !isMember)out.print(" readonly ");%>><%if (thisText[i].getComment() != null && thisText[i].getComment().length() > 0) {out.print(thisText[i].getComment());}%></textarea>                          
                     <%//close 'transcriptlet', or print a suggestion to parse lines
                                 out.println("</div>");
                             }
@@ -853,10 +882,6 @@
 <%}%>
                             <a class="wBtn" title="View the full image on this page" name="imageBtn" id="imageBtn"><span class="left ui-icon-image ui-icon"></span>View Full Page</a>
                             <%
-                            if(Tool.isToolActive(Tool.tools.annotation, UID)){
-                            %>
-                            <a class="wBtn" title="View annotations for this" name="annotationBtn" id="annotationBtn"><span class="left ui-icon-comment ui-icon"></span>Annotations</a>
-                            <%}
                             if(Tool.isToolActive(Tool.tools.history, UID)){
                             %>
                             <a class="wBtn" title="View the history for this line" name="historyBtn" id="historyBtn"><span class="left ui-icon-clock ui-icon"></span>History</a>
@@ -864,6 +889,10 @@
                             if(Tool.isToolActive(Tool.tools.abbreviation, UID)){
                             %>
                             <a class="wBtn" href="http://www.hist.msu.ru/Departments/Medieval/Cappelli/" target="_blank" id="abbrevBtn" title="Lookup frequently used abbreviations">Abbreviations</a>
+                            <%}
+                            if(Tool.isToolActive(Tool.tools.sciat, UID)){
+                            %>
+                            <a class="wBtn" href="#" target="_blank" id="sciatBtn" title="SharedCanvas annotations viewer and creator">Annotations</a>
                             <%}
                     for (int i=0;i<projectTools.length;i++){%>
                             <a class="iframeTools wBtn" href="<%out.print(projectTools[i].getUrl());%>" target="frame<%out.print(i);%>" id="frameBtn<%out.print(i);%>" title="Access the <%out.print(projectTools[i].getName());%> tool"><%out.print(projectTools[i].getName());%></a>
@@ -975,10 +1004,11 @@
                                 <span id="destroyColumn" class="tpenButton" title="Remove an entire column and its data with a click">Destroy Columns</span>
                                 <div id="destroyColumnInst">
                                     <p class="">Click a column to remove all lines and transcription data it contains from the project.</p>
+                                    <span id="destroyPage" class="tpenButton ui-state-error" title="Destroy all columns on this page"><span class="left ui-icon ui-icon-circle-close"></span>Destroy All Lines</span>
                                     <p class="small"><span class="inline ui-icon ui-icon-check"></span>You will be warned before destroying any <acronym title="Text, markup, and notes saved for lines within this column">transcription information</acronym>.<br />
                                     <span class="ui-state-error-text"><span class="inline ui-icon ui-icon-alert"></span>This is a destructive process and cannot be undone.</span></p>
                                 </div>
-                                <span id="clearColumns" class="tpenButton" title="Clear the page, removing all transcription information">Clear Page</span>
+<!--                                <span id="clearColumns" class="tpenButton" title="Clear the page, removing all transcription information">Clear Page</span>
                                 <div id="clearColumnsInst">
                                     <p class="">Click to clear the page, removing all transcription information.</p>
                                     <span id="destroyPage" class="tpenButton ui-state-error" title="Destroy all columns on this page"><span class="left ui-icon ui-icon-circle-close"></span>Destroy All Lines</span>
@@ -986,7 +1016,7 @@
                                         <span class="inline ui-icon ui-icon-info"></span>If you load a page without any parsing information, automatic parsing will occur.<br />
                                         <span class="inline ui-icon ui-icon-check"></span>You will be warned before destroying any <acronym title="Text, markup, and notes saved for lines on this page.">transcription information</acronym>.
                                      </p>
-                                </div>
+                                </div>-->
                                 <span id="reparseColumns" class="tpenButton" title="Reparse all columns, removing any associated lines">Reparse All Columns</span>
                                 <div id="reparseColumnsInst">
                                     <p class="">Click to remove all transcription data and lines from this page, automatically parsing based on the columns shown.</p>
@@ -1071,7 +1101,7 @@
 <!--            Cappelli Abbreviation Lookup Tool-->
             <div id="abbrevSplit">
                 <!--                        Image is loaded in Data.postLoader()-->
-                <img id="abbrevImg" alt="abbreviation page" src="http://67.23.4.192/images/cappelli/Scan0064.jpg" />
+                <img id="abbrevImg" alt="abbreviation page" src="//t-pen.org/images/cappelli/Scan0064.jpg" />
                 <div id="abbreviations"> 
                     <%String[] groups = textdisplay.AbbreviationPage.getGroups("capelli");
                         StringBuilder selectGroups = new StringBuilder();
@@ -1101,57 +1131,6 @@
                     <button class="exitPage ui-state-disabled" id="gotoThis"><span class="ui-icon ui-icon-transferthick-e-w left"></span>Go To</button>
                 </div>
                 <img alt="compare images" id="compareDiv" class="preloadImage" src="css/custom-theme/images/loadingCompare.gif" />
-            </div>
-<!--                    Annotation Tool-->
-            <div id="annotationSplit">
-<%if(isMember || permitAnnotation){%>
-                <div class="toolLinks right">
-                    <a id="highlightAnnotation"><span class="ui-icon ui-icon-lightbulb left"></span>Highlight Annotations</a>
-                    <a id="addAnnotation"><span class="ui-icon ui-icon-plus left"></span>Add Annotation</a>
-                    <a class="" id="exportAnnotationPage" href="pageAnnotations.jsp?projectID=<%out.print(projectID);%>&p=<%out.print(pageno);%>" target="_blank"><span class="ui-icon ui-icon-disk left"></span>Export Page</a>
-                    <a class="" id="exportAnnotationList" href="listAnnotations.jsp?projectID=<%out.print(projectID);%>&p=<%out.print(pageno);%>" target="_blank"><span class="ui-icon ui-icon-disk left"></span>Export List</a>
-                </div>
-<%}%>
-                <div id="annotations">
-                    <img alt="annotate image" id="annotationDiv" class="preloadImage" src="css/custom-theme/images/loadingCompare.gif" />
-                    <%
-                    textdisplay.Annotation[] allAnnotations = textdisplay.Annotation.getAnnotationSet(projectID, pageno);
-                    int annoLength = allAnnotations.length;
-                    for (int i=0;i<annoLength;i++){
-                        out.print("<div class='annotation'"
-                            +   " data-id='"        +   allAnnotations[i].getId()
-                            +   "' data-width='" + allAnnotations[i].getW()
-                            +   "' data-height='" + allAnnotations[i].getH()
-                            +   "' data-x='"      + allAnnotations[i].getX()
-                            +   "' data-y='"      + allAnnotations[i].getY()
-                            +   "' title='"      + allAnnotations[i].getText()
-                            +   "'></div>");
-                    }
-                    %>
-<%if(isMember || permitAnnotation){%>
-                <div id="annotationInstructions">
-                    <span id="defaultInst">Click an annotation to view or select a tool above.</span>
-                    <span id="highlightAnnotationInst">
-                        Use this button to toggle highlighting or hold CTRL while another option is selected.
-                    </span>
-                    <span id="deleteAnnotationInst">
-                        Click on an annotation to remove it completely.
-                    </span>
-                    <span id="addAnnotationInst">
-                        Resize and position this new annotation.
-                    </span>
-                    <span id="adjustAnnotationInst">
-                        Drag an annotation to a new location or adjust the edges.
-                    </span>
-                </div>
-<%}%>
-                </div>
-                <div id="annotationInfo" class="ui-corner-all">
-                    <h6 class="left">Annotation Information</h6>
-                    <a class="tpenButton right" id="deleteAnnotation" >Delete<span class="ui-icon ui-icon-trash left"></span></a>
-                    <textarea id="annotationText" onchange='Annotation.updateText();' <%if(!permitAnnotation&&!isMember)out.print("readonly");%> placeholder="Annotation Text"></textarea>
-                    <!--                    Can only add text at the moment-->
-                </div>
             </div>
 <%if(isMember || permitModify){
                         %>
@@ -1198,7 +1177,7 @@
        <%
 }else{
 //no text saved
-    out.print("Begin by <a href=\"uploadText.jsp?projectID="+thisProject.getProjectID()+"\">uploading some text</a> to linebreak");
+    out.print("Begin by <a href=\"uploadText.jsp?p="+pageno+"&projectID="+thisProject.getProjectID()+"\">uploading some text</a> to linebreak");
 }
 %>
 <!--                </div>-->
@@ -1206,11 +1185,10 @@
 <%}%>
 <!--                    Preview Transcription Tool-->
             <div id="previewSplit" class="ui-widget">
-<!--                <span class="tpenButton right" id="closePreviewX">Close Preview
-                    <span class="ui-icon ui-icon-closethick right"></span>
-                </span>-->
                 <div class="toolLinks">
                     <a class="exitPage" id="exportLink" href="project.jsp?selecTab=4&p=<%out.print(pageno+projectAppend);%>"><span class="right ui-icon ui-icon-disk"></span>Export Transcription</a>
+                    <a id="previewNotes"><span class="right ui-icon ui-icon-note"></span>Show Notes</a>
+                    <a id="previewAnnotations"><span class="right ui-icon ui-icon-pin-s"></span>Show Annotations</a>                  
                 </div>
                 <div id="previewDiv">
                     <%
@@ -1229,6 +1207,27 @@
                             if (folioPreview[i] < 1) {
                                 continue;
                             }
+//                            Annotation [] PreviewAnnos = Annotation.getAnnotationSet(projectID, folioPreview[i]);
+//                            StringBuilder annos = new StringBuilder();
+//                            int pAnnoLength = PreviewAnnos.length;
+//                            if (pAnnoLength > 0){
+//                                // Build Annotations
+//                                annos.append("<div class='previewAnnotations'><span class='ui-icon ui-icon-pin-w left'></span>");
+//                                for(int j=0;j<PreviewAnnos.length;j++){
+//           //                         String aLink = "<span class='previewAnnoLink'>"+PreviewAnnos[j].getLink()+"</span>";
+//                                    String aText = "<span class='previewAnnoText' title='("
+//                                            + PreviewAnnos[j].getX()
+//                                            + ", "
+//                                            + PreviewAnnos[j].getY()
+//                                            + ")'>"
+//                                            + PreviewAnnos[j].getText()
+//                                            + "</span>";
+//                                    annos
+//          //                              .append(aLink)
+//                                        .append(aText);
+//                                }
+//                                annos.append("</div>");
+//                            }
                             previewText = Transcription.getProjectTranscriptions(projectID, folioPreview[i]);
                             if (previewText.length < 1) {
                                 continue;
@@ -1239,7 +1238,7 @@
                             int oldLeftPreview = previewText[0].getX();
                     %>
                     <div class="previewPage" data-pageNumber="<%out.print((pageno - 1) + i);%>">
-                        <span class="previewFolioNumber"><%out.print(new Folio(folioPreview[i]).getPageName().replaceAll(" ", "&nbsp;"));if (i == 1)out.print(", <a name='currentPage' style='text-decoration: none;'>Current&nbsp;Page</a>");%></span><%
+                        <span class="previewFolioNumber"><%out.print(new Folio(folioPreview[i]).getPageName().replaceAll(" ", "&nbsp;"));if (i == 1)out.print(", <a name='currentPage' id='currentPage' style='text-decoration: none;'>Current&nbsp;Page</a>");%></span><%
                             for (int line = 0; line < numberLines; line++) {
                                 // line is zero-based in loop, but starts at 1 in database
                             %>
@@ -1256,7 +1255,10 @@
                             <span contentEditable="<%out.print((permitModify||isMember));%>" class="previewText<%if (i == 1) out.print(" currentPage");%>"><%out.print(previewText[line].getText().replace("&amp;", "&"));%><span class="previewLinebreak"></span></span>
                             <span contentEditable="<%out.print((permitModify||isMember));%>" class="previewNotes<%if (i == 1) out.print(" currentPage");%>"><%out.print(previewText[line].getComment());%></span>
                         </div>
-                        <%}%>
+                        <%}
+//                        out.print(annos.toString());
+%>
+                    <div class="previewAnnotations"></div>
                     </div>
                     <%}%>             
                 </div>
@@ -1329,6 +1331,14 @@
                     </div>
             </div>
         </div>
+                    <!--SCIAT tool-->
+            <div id="sciatSplit" class="ui-widget">
+                <div class="toolLinks">
+                    <a href="http://165.134.241.141:80/Annotation/svg-editor.html" target="sciatFrame" title="Reset this tool" class="frameReset">Reset<span class="ui-icon ui-icon-refresh left"></span></a>
+                    <a href="http://165.134.241.141:80/Annotation/svg-editor.html" target="_blank" title="Fill the window" class="frameTab">Full size<span class="ui-icon ui-icon-arrow-4-diag left"></span></a>
+                </div>
+                <%@include file="WEB-INF/includes/sciat.jspf" %>
+            </div>
                     <%
                     // Loading Loop for iframe tools
                     for(int i=0;i<projectTools.length;i++){
@@ -1365,7 +1375,7 @@
                     if ((ms.getControllingUser() != null) && (ms.getControllingUser().getUID() == thisUser.getUID())){
                         out.print("<a class='left ui-icon ui-icon-wrench' href=\"manuscriptAdmin.jsp?ms=" + ms.getID() + "\" title=\"Change page name or administer manuscript access\">Change Page Names</a>");
                     }
-                    if (archiveLink != null && archiveLink.compareTo("") != 0) {
+                    if (false && archiveLink != null && archiveLink.compareTo("") != 0) {
                         out.print("<a class='left clear ui-icon ui-icon-image' href=\"" + archiveLink + "\" target=\"_blank\" title=\"View Source Image\">Source Image</a>");
                 }%>
                 <select class="clear left" onchange="Interaction.navigateTo(this);">
@@ -1379,6 +1389,7 @@
             $("#popin > div").hide(); //hiding here retains display:inline-block
             $("#siteNavigation,#navOptions").clone(true,true).appendTo("#parsingDiv"); //copy navigation to Parsing tool
                 var compareSelect = $("#location").find("select").clone(true);
+                compareSelect.clone(true).attr("id","parseLocation").insertAfter("#parseOptions");
                 compareSelect.attr({
                     "id":"pageCompare",
                     "onchange":"compareTo(this)"

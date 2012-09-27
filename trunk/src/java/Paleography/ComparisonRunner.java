@@ -44,7 +44,7 @@ public class ComparisonRunner {
      */
     public ComparisonRunner(Manuscript m) throws SQLException, FileNotFoundException, IOException {
         //get the folios from this Manuscript that have existing character data suitable for comparison
-        String query = "select * from folios where msID=? and paleography!='0000-00-00 00:00:00'";
+        String query = "select * from folios where msID=? and paleography!='0000-00-00 00:00:00' order by sequence,pageName";
         Connection j = null;
         PreparedStatement ps = null;
         String fileLocation = Folio.getRbTok("PalographyDataDir") + "/" + m.getID() + "/";
@@ -85,7 +85,7 @@ public class ComparisonRunner {
                 }
             }
             overloadLoader n = new overloadLoader(new File(Folio.getRbTok("TempPaleoResults") + fileLocation), new Hashtable(), new Hashtable(), true);
-            overloadLoader.setCharCounts();
+            //overloadLoader.setCharCounts();
         } finally {
             DatabaseWrapper.closeDBConnection(j);
             DatabaseWrapper.closePreparedStatement(ps);
@@ -101,7 +101,7 @@ public class ComparisonRunner {
      */
     public ComparisonRunner(Folio f) throws SQLException, FileNotFoundException, IOException {
         //get the folios from this Manuscript that have existing character data suitable for comparison
-        String query = "select * from folios where msID=? and paleography!='0000-00-00 00:00:00'";
+        String query = "select * from folios where msID=? and paleography!='0000-00-00 00:00:00' order by sequence,pageName";
         Connection j = null;
         PreparedStatement ps = null;
         Manuscript m = new Manuscript(f.getFolioNumber());
@@ -119,8 +119,14 @@ public class ComparisonRunner {
             }
             File[] existingData = outputLoc.listFiles();
             for (int ctr = 0; ctr < existingData.length; ctr++) {
-                existingData[ctr].delete();
+              //  existingData[ctr].delete();
+            //}
+            if(existingData[ctr].getName().contains(""+f.getFolioNumber()))
+            {
+                return;
             }
+            }
+            
             while (rs.next()) {
                 folioIDs.add(rs.getInt("pageNumber"));
             }
@@ -143,8 +149,8 @@ public class ComparisonRunner {
                     }
                 }
             }
-            overloadLoader n = new overloadLoader(new File(Folio.getRbTok("TempPaleoResults") + fileLocation), new Hashtable(), new Hashtable(), true);
-            overloadLoader.setCharCounts();
+            //overloadLoader n = new overloadLoader(new File(Folio.getRbTok("TempPaleoResults") + fileLocation), new Hashtable(), new Hashtable(), true);
+            //overloadLoader.setCharCounts();
         } finally {
             DatabaseWrapper.closeDBConnection(j);
             DatabaseWrapper.closePreparedStatement(ps);

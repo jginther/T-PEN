@@ -68,10 +68,50 @@ DatabaseWrapper.closeDBConnection(j);
 DatabaseWrapper.closePreparedStatement(ps);
         }
     }
+    public ImageAnalyzer (String archive) throws SQLException, MalformedURLException
+    {
+        String query="select pageNumber from folios where folios.paleography='0000-00-00 00:00:00' and archive=?";
+        String update="update folios set paleography=now() where pageNumber=?";
+        Connection j=null;
+PreparedStatement ps=null;
+        try{
+            j=DatabaseWrapper.getConnection();
+            ps=j.prepareStatement(query);
+            ps.setString(1, archive);
+            ResultSet rs=ps.executeQuery();
+            ps=j.prepareStatement(update);
+            while(rs.next())
+            {
+                Folio f=new Folio(rs.getInt("pageNumber"));
+                System.out.print(f.getFolioNumber()+"\n");
+                BufferedImage img = ImageHelpers.readAsBufferedImage(new URL(Folio.getRbTok("SERVERCONTEXT") + Folio.getImageURL(rs.getInt("pageNumber"))+"&code="+Folio.getRbTok("imageCode")));//ImageCache.getImage(f.getFolioNumber());//
+                detectimages.imageProcessor proc=new imageProcessor(img,2000);
+                Manuscript ms=new Manuscript(f.getFolioNumber());
+                System.out.print(Folio.getRbTok("PalographyDataDir")+"/"+ms.getID()+"/\n");
+                File outdir=new File(Folio.getRbTok("PalographyDataDir")+"/"+ms.getID()+"/");
+                if(!outdir.exists())
+                    outdir.mkdirs();
+                proc.setDataPath(Folio.getRbTok("PalographyDataDir")+"/"+ms.getID()+"/");
+                proc.run2(""+f.getFolioNumber()+".txt");
+                ps.setInt(1, f.getFolioNumber());
+                ps.execute();
+            }
+        }
+        catch (IOException ex) {
+            Logger.getLogger(ImageAnalyzer.class.getName()).log(Level.SEVERE, null, ex);
+        }        finally{
+DatabaseWrapper.closeDBConnection(j);
+DatabaseWrapper.closePreparedStatement(ps);
+        }
+    }
 public static void main(String [] args)
     {
         try {
+            if(args.length==1)
+                new ImageAnalyzer(args[0]);
+            
             new ImageAnalyzer();
+            
         } catch (SQLException ex) {
             Logger.getLogger(ImageAnalyzer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (MalformedURLException ex) {

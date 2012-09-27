@@ -1,3 +1,4 @@
+
 /**This servlet is modified from source code at http://www.javabeat.net/articles/262-asynchronous-file-upload-using-ajax-jquery-progress-ba-1.html*/
 
 package ImageUpload;
@@ -57,15 +58,14 @@ public class FileUpload extends HttpServlet implements Servlet {
 	            listener = (FileUploadListener) session.getAttribute("LISTENER");
 
 		        if (listener == null) {
+                            out.print("No active listener");
 			        return;
 	            } else {
 		            bytesRead = listener.getBytesRead();
 	                contentLength = listener.getContentLength();
 		        }
 	        }
-
 		    response.setContentType("text/xml");
-
 		    buffy.append("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
 			buffy.append("<response>\n");
 	        buffy.append("\t<bytes_read>" + bytesRead + "</bytes_read>\n");
@@ -73,7 +73,7 @@ public class FileUpload extends HttpServlet implements Servlet {
 
 	        if (bytesRead == contentLength) {
 	            buffy.append("\t<finished />\n");
-		        session.setAttribute("LISTENER", null);
+		        //session.setAttribute("LISTENER", null);
 	        } else {
 		        long percentComplete = ((100 * bytesRead) / contentLength);
 	            buffy.append("\t<percent_complete>" + percentComplete + "</percent_complete>\n");
@@ -103,8 +103,9 @@ HttpSession session = request.getSession();
             ServletFileUpload upload = new ServletFileUpload(factory);
             FileUploadListener listener = new FileUploadListener();
             
-            session.setAttribute("LISTENER", listener);
+            
             upload.setProgressListener(listener);
+            session.setAttribute("LISTENER", listener);
             List uploadedItems = null;
             FileItem fileItem = null;
             int UID = Integer.parseInt(session.getAttribute("UID").toString());
@@ -122,7 +123,7 @@ HttpSession session = request.getSession();
                 while (i.hasNext()) {
                     fileItem = (FileItem) i.next();
                     if (fileItem.isFormField() == false) {
-                        if (fileItem.getSize() > 0 && fileItem.getSize()<maxSize && fileItem.getName().endsWith("zip")) {
+                        if (fileItem.getSize() > 0 && fileItem.getSize()<maxSize && fileItem.getName().toLowerCase().endsWith("zip")) {
         File f=new File(Folio.getRbTok("uploadLocation")+"/"+thisUser.getLname()+thisUser.getUID()+".zip");
 fileItem.write(f);
         Manuscript ms=new Manuscript(repository,archive,collection,city);
@@ -137,14 +138,14 @@ fileItem.write(f);
 
 
     }
-                            File uploadedFile = null;
+                            /*File uploadedFile = null;
                             String myFullFileName = fileItem.getName();
                             String myFileName = "";
                             String slashType = (myFullFileName.lastIndexOf("\\") > 0) ? "\\" : "/";
                             int startIndex = myFullFileName.lastIndexOf(slashType);
                             myFileName = myFullFileName.substring(startIndex + 1, myFullFileName.length());
                             uploadedFile = new File(filePath, myFileName);
-                            fileItem.write(uploadedFile);
+                            fileItem.write(uploadedFile);*/
                         }
                     }
                 
@@ -156,5 +157,6 @@ fileItem.write(f);
 			} catch (SQLException ex) {
 			    Logger.getLogger(FileUpload.class.getName()).log(Level.SEVERE, null, ex);
 	        }
+                    finally{session.setAttribute("LISTENER", null);}
 		}
 	}

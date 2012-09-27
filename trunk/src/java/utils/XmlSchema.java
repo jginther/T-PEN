@@ -29,7 +29,6 @@ import org.xml.sax.SAXException;
 import textdisplay.Manuscript;
 import textdisplay.Project;
 import textdisplay.TagFilter;
-import textdisplay.transcriptionPage;
 
 /**Handles validating the contents of a project against the associated xml schema*/
 public class XmlSchema

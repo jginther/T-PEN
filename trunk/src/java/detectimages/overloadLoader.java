@@ -36,7 +36,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import textdisplay.DatabaseWrapper;
 
-
+/**This class handles the manipulation of the massive result sets created by the paleographic comparison process. It has legacy code for using a database
+ as well as the current, flat file based code.*/
 public class overloadLoader
 {
     public static void setBlob(blob b)

@@ -17,6 +17,7 @@ package detectimages;
 public class altBlob {
 
     int [][] data;
+    int [][][]dataOffset;
     //lookupTable is a table of hammering values (the number of set bits). This is cool because it allows the comparer to use an integer in which the set bits represent a black pixel
     //resulting in running 16 pixel overlay checks via a single bitwise and
     static int [] lookupTable;
@@ -61,6 +62,65 @@ public class altBlob {
             int l=0;
         }
     }
+    public altBlob (blob b, int offset)
+    {
+        try{
+        dataOffset=new int[offset][b.height%16+1][b.width];
+        int [][] thearr=b.matrixVersion.matrix;
+        
+        
+        for(int i=0;i<data.length;i++)
+            for(int k=0;k<data[0].length;k++)
+            {
+                int val=0;
+                
+                for(int ctr=0;ctr<16;ctr++)
+                {
+
+                    if(i*16+ctr<thearr.length&&(thearr[i*16+ctr][k])==1)
+                    val+=Math.pow(2,ctr );
+                }
+                dataOffset[0][i][k]=val;
+
+            }
+        
+        for(int i=0;i<data.length;i++)
+            for(int k=0;k<data[0].length;k++)
+            {
+                int val=0;
+                
+                for(int ctr=0;ctr<16;ctr++)
+                {
+
+                    if(i*16+ctr-1<thearr.length&&(thearr[i*16-1+ctr][k])==1)
+                    val+=Math.pow(2,ctr );
+                }
+                dataOffset[1][i][k]=val;
+
+            }
+        for(int i=0;i<data.length;i++)
+            for(int k=0;k<data[0].length;k++)
+            {
+                int val=0;
+                
+                for(int ctr=0;ctr<16;ctr++)
+                {
+
+                    if(i*16+ctr+1<thearr.length&&(thearr[i*16+1+ctr][k])==1)
+                    val+=Math.pow(2,ctr );
+                }
+                dataOffset[2][i][k]=val;
+
+            }
+        
+    }
+        catch(Exception e)
+        {
+
+            StackTraceElement [] er=e.getStackTrace();
+            int l=0;
+        }
+    }
     /**Compare 2 altblobs and return the count of overlapping pixels*/
     public int run(altBlob b)
     {
@@ -81,6 +141,27 @@ public class altBlob {
             }
         return total;
     }
+    public int run_offset(altBlob b)
+    {
+        int bigTotal=0;
+        int max0=data.length;
+        if(b.data.length<max0)
+            max0=b.data.length;
+        int max1=data[0].length;
+        if(b.data[0].length<max1)
+            max1=b.data[0].length;
+
+        int total=0;
+        for(int i=0;i<max0;i++)
+            for(int k=0;k<max1;k++)
+            {
+                total+=lookupTable[data[i][k]&b.data[i][k]];
+            }
+        if(total>bigTotal)
+            bigTotal=total;
+        return bigTotal;
+    }
+    
     
 
 }

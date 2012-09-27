@@ -102,7 +102,7 @@
             }
             .delete {position:absolute;top:6px;right:6px;}
             input.text {width:100%;}
-            #logFilter a {width:46%;float:left}
+            #logFilter a:not(#openNote) {width:46%;float:left;margin-left: 1%;}
             #closePopup:hover {color: crimson;cursor: pointer;}
             .label {text-align: right; margin-right: 10px;}
             #inviteFeedback span {display:block;}
@@ -180,7 +180,9 @@
                 permitRead = permit.getAllow_public_read_transcription();
                 Boolean permitManage = permitExport || permitCopy || permitRead || permitButtons || permitMetadata;
                 if (!isMember && !permitManage) {
-                    out.print("ERROR: You are not a member of this project. <a href='.'>Return Home</a>");
+                String errorMessage = thisUser.getFname() + ", you are not a member of this project.";
+            %><%@include file="WEB-INF/includes/errorBang.jspf" %><%
+                return;
                 }
             } else {
                 if (request.getParameter("delete") != null) {
@@ -338,7 +340,7 @@
                     $(window).load(function(){
                         equalHeights("tall",100);
                         //$("body").removeClass("ui-state-disabled",500);
-                        $("a:contains('Resume Transcription')").parent().each(function(){
+                        $("a:contains('Resume Transcribing')").parent().each(function(){
                             $(this).removeClass('loadingBook').css("background","url('<%
                 int pageno = 501;
                 try {
@@ -496,10 +498,10 @@
                                                 equalHeights("tall",200);
                                             }); 
                                         });
-                                        $("#logFilter a").not($("#openNote")).hide(); //delete this line to enable the filters on the projectLog
+//                                        $("#logFilter a").not($("#openNote")).hide(); //delete this line to enable the filters on the projectLog
                                         $("#logFilter a").not($("#openNote")).click(function(){
                                             $(this).toggleClass('ui-state-disabled');
-                                            $("#projectLog div."+$(this).attr("id")).slideToggle();
+                                            $("#projectLog div."+$(this).attr("filter")).parent().parent().slideToggle();
                                         });
                                         /* Handlers for Export Options */
                                         $("#inline, #pageonly").click(function(){
@@ -566,15 +568,24 @@
                                                 //if (areChanges) alert("Some selections are not supported in plaintext export and have been changed.");
                                             }
                                         });
-                                        $("#beginFolio,#endFolio").change(function(){
-                                            var firstFolio = $("#beginFolio").children("option:selected").index();
-                                            var lastFolio = $("#endFolio").children("option:selected").index();
+                                        $(".beginFolio,.endFolio").change(function(){
+                                            var thisIs = ($(this).hasClass('beginFolio')) ? "beginFolio" : "endFolio";
+                                            $('.'+thisIs).val(this.value);
+                                            var first = $(this).parent().find(".beginFolio");
+                                            var last = $(this).parent().find(".endFolio");
+                                            var firstFolio = first.children("option:selected").index();
+                                            var lastFolio = last.children("option:selected").index();
                                             if (firstFolio > lastFolio) {
-                                                $("#beginFolio,#endFolio").addClass("ui-state-error").attr("title","Folio range does not include any pages.");
+                                                first.add(last).addClass("ui-state-error").attr("title","Folio range does not include any pages.");
+                                                $('#submitLimit').prop('disabled',true).addClass('ui-state-disabled');
                                             } else {
-                                                $("#beginFolio,#endFolio").removeClass("ui-state-error").attr("title","");
+                                                first.add(last).removeClass("ui-state-error").attr("title","");
+                                                $('#submitLimit').prop('disabled',false)
+                                                    .removeClass('ui-state-disabled')
+                                                    .html("Submit Set Range");
                                             }
                                         });
+
                                         $(".partnerListing").find("input:radio").click(function(event){
                                             event.preventDefault();
                                         });
@@ -595,7 +606,8 @@
                                         });
                                         $("#disconnect").find(".partnerName").click(function(event){
                                             if(event.target != this){return true;}
-                                            $("#tpenSubmit").click();
+                                            $("#tabs").tabs("select",4);
+                                            setTimeout('$("#tpenSubmit").click()',350);
                                         })
                                         .find(".ui-icon-closethick").bind({
                                             mouseenter: function(){
@@ -733,7 +745,7 @@
                                             if (i > 0) {
                                                 out.print(", ");
                                             }
-                                            out.print(leader[0].getFname() + " " + leader[0].getLname());
+                                            out.print(leader[i].getFname() + " " + leader[i].getLname());
                                         }%><br />
                                     <span class="label">Description: </span><%out.print(m.getDescription());%>
                                 </p>
@@ -867,6 +879,7 @@
                                             out.println("<span class='left clear-left'><span class='ui-icon-check ui-icon left'></span>Connected successfully.</span>");
                                             PartnerProject theTemplate = new PartnerProject(Integer.parseInt(request.getParameter("template")));
                                             thisProject.copyButtonsFromProject(theTemplate.getTemplateProject());
+                                            thisProject.copyHotkeysFromProject(theTemplate.getTemplateProject());
                                             out.println("<span class='left clear-left'><span class='ui-icon-check ui-icon left'></span>Tags copied successfully.</span>");
                                             User controller = theTemplate.getControllingUser();
                                             if (!thisGroup.isMember(controller.getUID())) {
@@ -1044,7 +1057,7 @@
                                     <%
                                         if (request.getParameter("submitted") != null) {
                                             String content = request.getParameter("logContent");
-                                            thisProject.addLogEntry(content, UID); // ,"userAdded"
+                                            thisProject.addLogEntry("<span class='log_user'></span>"+content, UID); // ,"userAdded"
                                         }
                                         out.print(thisProject.getProjectLog());
                                     %>
@@ -1058,11 +1071,11 @@
                                     </div>
                                             <div id="logFilter">
                                     <!--    Filters: userAdded, transcription, addMS, parsing           -->
-                                    <a href="#" id="userAdded" class="tpenButton" title="Filter notes added by users"><span class="right ui-icon ui-icon-person"></span>User Comment</a>
-                                    <a href="#" id="transcription" class="tpenButton" title="Filter automatic notes about new transcriptions"><span class="right ui-icon ui-icon-note"></span>Transcription</a>
-                                    <a href="#" id="addMS" class="tpenButton" title="Filter automatic notes about additions to project"><span class="right ui-icon ui-icon-plus"></span>New Manuscript</a>
-                                    <a href="#" id="parsing" class="tpenButton" title="Filter automatic notes about changes in parsing"><span class="right ui-icon ui-icon-wrench"></span>Parsing Update</a>
-                                    <a href="projectlog.jsp?projectID=<%out.print(projectID);%>" target="_blank" class="tpenButton" id="openNote"><span class="right ui-icon ui-icon-newwin"></span>View Log in a new window</a>
+                                    <a href="#" id="userAdded" filter="log_user" class="tpenButton" title="Filter notes added by users"><span class="right ui-icon ui-icon-person"></span>User Comment</a>
+                                    <a href="#" id="transcription" filter="log_transcription" class="tpenButton" title="Filter automatic notes about new transcriptions"><span class="right ui-icon ui-icon-note"></span>Transcription</a>
+                                    <a href="#" id="addMS" filter="log_manuscript" class="tpenButton" title="Filter automatic notes about additions to project"><span class="right ui-icon ui-icon-plus"></span>New Manuscript</a>
+                                    <a href="#" id="parsing" filter="log_parsing" class="tpenButton" title="Filter automatic notes about changes in parsing"><span class="right ui-icon ui-icon-wrench"></span>Parsing Update</a>
+                                    <a href="projectlog.jsp?projectID=<%out.print(projectID);%>" target="_blank" class="tpenButton clear" id="openNote"><span class="right ui-icon ui-icon-newwin"></span>View Log in a new window</a>
                                 </div></li>
                         </ul>
                     </div>
@@ -1174,10 +1187,12 @@
                                                     newTool = Tool.tools.history;
                                                 } else if (userTools[i].compareTo("linebreak") == 0) {
                                                     newTool = Tool.tools.linebreak;
-                                                } else if (userTools[i].compareTo("annotation") == 0) {
-                                                    newTool = Tool.tools.annotation;
+//                                                } else if (userTools[i].compareTo("annotation") == 0) {
+//                                                    newTool = Tool.tools.annotation;
                                                 } else if (userTools[i].compareTo("paleography") == 0) {
                                                     newTool = Tool.tools.paleography;
+                                                } else if (userTools[i].compareTo("sciat") == 0) {
+                                                    newTool = Tool.tools.sciat;
                                                 } else {
                                                     continue;
                                                 }
@@ -1200,7 +1215,7 @@
                                     // User Tools
                                         String[] toolCheck = new String[11];
                                         String[] toolName = new String[11];
-                                        Tool.tools[] TOOLS = {Tool.tools.abbreviation, Tool.tools.compare, Tool.tools.parsing, Tool.tools.preview, Tool.tools.history, Tool.tools.linebreak, Tool.tools.annotation, Tool.tools.paleography};
+                                        Tool.tools[] TOOLS = {Tool.tools.abbreviation, Tool.tools.compare, Tool.tools.parsing, Tool.tools.preview, Tool.tools.history, Tool.tools.linebreak, Tool.tools.paleography, Tool.tools.sciat};
                                         for (int i = 0; i < 8; i++) {
                                             toolCheck[i] = (Tool.isToolActive(TOOLS[i], UID)) ? "checked=true" : "";
                                         }
@@ -1211,8 +1226,8 @@
                                     <label class='userTools'><input name="userTool[]" type="checkbox" <%out.print(toolCheck[3]);%> value="preview" />Preview Tool</label>
                                     <label class='userTools'><input name="userTool[]" type="checkbox" <%out.print(toolCheck[4]);%> value="history" />History Tool</label>
                                     <label class='userTools'><input name="userTool[]" type="checkbox" <%out.print(toolCheck[5]);%> value="linebreak" />Linebreaking Tool</label>
-                                    <label class='userTools'><input name="userTool[]" type="checkbox" <%out.print(toolCheck[6]);%> value="annotation" />Annotation Tool</label>
-                                    <label class='userTools'><input name="userTool[]" type="checkbox" <%out.print(toolCheck[7]);%> value="paleography" />Glyph Matching</label>
+                                    <label class='userTools'><input name="userTool[]" type="checkbox" <%out.print(toolCheck[6]);%> value="paleography" />Glyph Matching</label>
+                                    <label class='userTools'><input name="userTool[]" type="checkbox" <%out.print(toolCheck[7]);%> value="sciat" />Annotations</label>
                                     <span class="ui-helper-clearfix"></span><h4 id="projectTools" class="clear-left" title="These options are tied to each project">Project Tools
                                         <a class="ui-icon ui-icon-plusthick" id="addTool" title="Add a Tool" onclick="$('#addingTools').fadeIn();">Add a Tool</a>
                                         <span class="left clear-left small">(Click on a label to edit the button name)</span></h4>
@@ -1283,25 +1298,7 @@
                     </div>
                     <%if (isMember || permitExport){%>
                         <div id="tabs-5">
-                        <%
-                            if (thisProject.getAssociatedPartnerProject() != null) {
-                                //List Collaborations
-                                PartnerProject collaboration = thisProject.getAssociatedPartnerProject();
-                                if (collaboration.getURL().length() > 3) {
-                                    String userEmail = thisUser.getUname();
-                                    String userFname = thisUser.getFname();
-                                    String userLname = thisUser.getLname();
-                                    String exportURI = "t-pen.org/TPEN/export?type=xml&projectID=" + projectID + "&linebreak=inline&imageWrap=true&tei=true";
-                                    String projectURI = "t-pen.org/TPEN/project.jsp?projectID=" + projectID;
-                        %>
-                        <form id="linkPartner" target="_blank" method="POST" action="<%out.print(collaboration.getURL());%>" >
-                            <input name="submitterEmailAddress" type="hidden" value="<%out.print(userEmail);%>" />
-                            <input name="submitterFname" type="hidden" value="<%out.print(userFname);%>" />
-                            <input name="submitterLname" type="hidden" value="<%out.print(userLname);%>" />
-                            <input name="uriExport" type="hidden" value="<%out.print(exportURI);%>" />
-                            <input name="uriProject" type="hidden" value="<%out.print(projectURI);%>" />
-                            <button id="tpenSubmit" name="TpenSubmit" type="submit" value="submit" title='Submit to Switchboard' class="ui-button tpenButton"><span class='ui-icon ui-icon-link right'></span>Submit this project to Switchboard: <%out.print(collaboration.getName());%></button>
-                        </form>
+                            <%@include file="WEB-INF/includes/switchboardSubmit.jspf" %>
                         <%
                                 }
                             }%>
@@ -1333,10 +1330,10 @@
                                     <label class="clear xmlDisclaimer" id="imageWrapOption" for="imageWrapSelect" title="Place an XML tag to indicate the reference image at each pagebreak"><input id="imageWrapSelect" type="checkbox" name="imageWrap" checked />Check to Include Image Tags</label><br />
                                     <h3 class="clear">Export Range</h3>
                                     <div id="pageRange">
-                                        <label class="clear" for="beginFolio">Start with folio:<select id='beginFolio' name='beginFolio'></select></label><br/>
-                                        <label class="clear" for="endFolio">End with folio:<select id='endFolio' name='endFolio'></select></label>
+                                        <label class="clear" for="beginFolio">Start with folio:<select id='beginFolio' class="beginFolio" name='beginFolio'></select></label><br/>
+                                        <label class="clear" for="endFolio">End with folio:<select id='endFolio' class='endFolio' name='endFolio'></select></label>
                                     </div>
-                                    <script>
+                                    <script type="text/javascript">
                                         var dropdowns='<%out.print(ESAPI.encoder().decodeFromURL(thisProject.getFolioDropdown()));%>';
                                         $("#pageRange").find("select").append(dropdowns)
                                         .children("option").val(function(){

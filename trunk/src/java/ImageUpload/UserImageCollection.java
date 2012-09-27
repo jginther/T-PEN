@@ -67,7 +67,20 @@ public class UserImageCollection
         }
         //now delete the Manuscript record
     }
-
+private static File[] removeItem(File[] old,int item)
+{
+    File [] res=new File[old.length-1];
+    int pos=0;
+    for(int i=0;i<old.length;i++)
+    {
+        if(i!=item)
+        {
+            res[pos]=old[i];
+            pos++;
+        }
+    }
+    return res;
+}
     /**
      * Unzip the images in the zip file, put them in the proper location, and create folios records for them
      * @param zippedFile name of the zip file without path
@@ -78,10 +91,10 @@ public class UserImageCollection
     public UserImageCollection(File zippedFile, User uploader, Manuscript ms) throws Exception
     {
         String directory=Folio.getRbTok("uploadLocation");
-        File dir=new File(directory+"/"+uploader.getLname());
+        File dir=new File(directory+"/"+uploader.getLname()+"/"+ms.getID());
         if(!dir.exists())
         {
-            dir.mkdir();
+            dir.mkdirs();
             
         }
 
@@ -95,6 +108,8 @@ public class UserImageCollection
             if(!validateImage(images[i]))
             {
                 System.out.print("bad image, would do something\n");
+                images=removeItem(images,i);
+                i--;
             }
             
         }
@@ -130,7 +145,7 @@ public class UserImageCollection
         File [] allFiles=dir.listFiles();
         for(int i=0;i<allFiles.length;i++)
         {
-            if(allFiles[i].getName().contains(".jpg"))
+            if(allFiles[i].getName().toLowerCase().contains(".jpg"))
             {
                 res.add(allFiles[i]);
             }

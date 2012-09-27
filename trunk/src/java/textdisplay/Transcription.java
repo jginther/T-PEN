@@ -12,7 +12,9 @@ and limitations under the License.
 package textdisplay;
 
 import Search.TranscriptionIndexer;
+import com.hp.hpl.jena.rdf.model.*;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.sql.Connection;
@@ -764,7 +766,7 @@ DatabaseWrapper.closePreparedStatement(ps);
                     Project p = new Project(projectID);
                     Manuscript m = new Manuscript(folio);
                     //modified to now be a link
-                    p.addLogEntry("Saved <a href=\"transcription.jsp?projectID="+projectID+"&folio="+folio+"\">" + m.getShelfMark() + "</a> " + new Folio(folio).getPageName(), this.UID);// ,"Transcription"
+                    p.addLogEntry("<span class='log_transcription'></span>Saved <a href=\"transcription.jsp?projectID="+projectID+"&folio="+folio+"\">" + m.getShelfMark() + "</a> " + new Folio(folio).getPageName(), this.UID);// ,"Transcription"
                 stmt = j.prepareStatement("Select text,comment from transcription where id=?");
                 stmt.setInt(1, lineID);
                 ResultSet rs;
@@ -963,6 +965,55 @@ DatabaseWrapper.closePreparedStatement(ps);
         }
         return "";
     }
+    /**Build this line of transcription as an OAC annotation and return the N3 serialization*/
+    public String getAsOAC() throws SQLException {
+        Model model = ModelFactory.createDefaultModel();
+        //model.setNsPrefix("dms", "http://dms.stanford.edu/ns/");
+        model.setNsPrefix("oac", "http://www.openannotation.org/ns/");
+        model.setNsPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+        model.setNsPrefix("ore", "http://www.openarchives.org/ore/terms/");
+        model.setNsPrefix("cnt", "http://www.w3.org/2008/content#");
+
+        model.setNsPrefix("sc", "http://www.shared-canvas.org/ns/");
+        //model.setNsPrefix("dcterms", "http://purl.org/dc/terms/");
+
+        Property oacTarget = model.createProperty("http://www.openannotation.org/ns/", "hasTarget");
+        Property oacBody = model.createProperty("http://www.openannotation.org/ns/", "hasBody");
+       // Property scContentAnnotation=model.createProperty("http://www.openannotation.org/ns/","Annotation");
+        Property scContentAnnotation=model.createProperty("http://www.shared-canvas.org/ns/","ContentAnnotation");
+        Property contentChars = model.createProperty("http://www.w3.org/2008/content#", "rest");
+        Property encoding = model.createProperty("http://www.w3.org/2008/content#", "characterEncoding");
+        Resource item;
+        item= model.createResource("http://t-pen.org/transcriptions/"+this.lineID);
+        Property rdfType = model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "type");
+        Resource thisLine = model.createResource("urn:uuid:"+java.util.UUID.randomUUID().toString());
+        Property stringContent=model.createProperty("http://www.w3.org/2008/content#ContentAsText");
+        Property parseType=model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "type");
+        int folioNumber = this.folio;
+        Folio f = new Folio(folioNumber);
+        String xyhw = "#xywh=" + this.getX() + "," + this.getY()  + "," + this.getWidth() + "," + this.getHeight();
+        Resource target=model.createResource(f.getCanvas() + xyhw);
+        Literal textLiteral = model.createLiteral(this.getText());
+        Literal literal = model.createLiteral("Literal");
+        Literal encodingType = model.createLiteral("utf-8");
+
+
+
+        item.addProperty(oacBody, thisLine);
+        item.addProperty(oacTarget, target);
+
+        item.addProperty(rdfType, scContentAnnotation);
+        //contentChars.addProperty(parseType, literal);
+        thisLine.addProperty(contentChars, textLiteral);
+        //thisLine.addProperty(parseType, literal);
+        thisLine.addProperty(encoding,encodingType);
+        thisLine.addProperty(rdfType, stringContent);
+        StringWriter tmp = new StringWriter();
+        model.write(tmp, "");
+        return tmp.toString();
+    }
+   
+
     /**
      * Get the url of the image on which this Transcription is based. This is the scaled version of the image!
      * @return the url, or "" on error

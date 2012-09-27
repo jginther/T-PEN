@@ -76,7 +76,7 @@ public static String getGMTTimeString(long milliSeconds) {
            y=thisBlob.getY();
            //scale coordinates based on the fixed 1500 pixel size of the observations
            double factor=originalImg.getHeight()/(double)2000;;
-           factor=1.0;
+           //factor=1.0;
            width=(int) (width * factor);
            height=(int) (height * factor);
            x=(int) (x * factor);

@@ -22,6 +22,7 @@
             ul li {list-style:outside none;padding:2%;width:32%;margin:.666%;height: 375px;overflow: auto;}
             textarea {width:100%;height:auto;}
             form {padding-right: 5%}
+            #contact:focus {height:200px;}
         </style>
     </head>
     <body>
@@ -97,7 +98,7 @@
                                             }
                                         }
                                     %>
-                                    <form action="admin.jsp" method="POST" onsubmit="return Message.isValid();">
+                                    <form action="about.jsp" method="POST" onsubmit="return Message.isValid();">
                                         <script>
                                             var Message = {
                                                 isValid:    function(){
@@ -123,7 +124,7 @@
                                             };
                                         </script>
                                         <input type="hidden" value="3" name="selecTab" />
-                                        <textarea id="contact" name="contact" placeholder="User information will be included automatically with this message"></textarea>
+                                        <textarea id="contact" name="contact" placeholder="Include contact information in your message for a response."></textarea>
                                         <input type="submit" name="contactTPEN" value="Send Message" />
                                     </form> </dd>
                             </dl>

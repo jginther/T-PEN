@@ -1,0 +1,290 @@
+<!--SharedCanvas Interoperable Annotation Tool (SCIAT) was built by the Center
+for Digital Theology at Saint Louis University. It is built from the SVG-Editor
+located at http://code.google.com/p/svg-edit/ with modification to support the
+creation and editing of OAC-compliant annotations from any SharedCanvas repository.-->
+
+<!-- This page is loaded in an iframe for use. Specific parameters should be
+applied to load specific canvases. Read more under the script tag below. -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="chrome=1"/>
+<link rel="stylesheet" href="js/sciat/svg-editor.css" type="text/css"/>
+<link rel="stylesheet" href="js/sciat/spinbtn/JQuerySpinBtn.css" type="text/css"/>
+
+<!--These scripts are used by SVG-Edit and for loading/updating annotations
+Absolute paths link to publicly hosted scripts;
+relative links contain options for local setup and must be customized
+for use with the specific instance of SCIAT.-->
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.js"></script> 
+<script type="text/javascript" src="http://cachedcommons.org/cache/jquery-bbq/1.2.1/javascripts/jquery-bbq.js"></script>
+<script type="text/javascript" src="js/sciat/svg-editor.js"></script>
+<script type="text/javascript" src="js/sciat/svgcanvas.js"></script>
+<script type="text/javascript" src="js/sciat/svgicons/jquery.svgicons.js"></script>
+
+<!-- script for annotation transformation -->
+<script type="text/javascript" src="js/sciat/jquery.rdfquery.rdfa-1.0.js"></script>
+<script type="text/javascript" src="js/sciat/Annotation.js"></script>
+<script type="text/javascript" src="js/sciat/annotationData.js"></script>
+<script type="text/javascript" src="js/sciat/AnnotationStore.js"></script>
+<script type="text/javascript" src="js/sciat/Repository.js"></script>
+<script type="text/javascript" src="js/sciat/Canvas.js"></script>
+<script type="text/javascript" src="js/sciat/Manifest.js"></script>
+<script type="text/javascript" src="js/sciat/oac_utils.js"></script>
+<script type="text/javascript" src="js/sciat/oac_rdf.js"></script>
+<script type="text/javascript" src="js/sciat/oac_rdfjson.js"></script>        
+<script type="text/javascript" src="js/sciat/rdf_store.js"></script>  
+
+<script type="text/javascript" src="js/sciat/spinbtn/JQuerySpinBtn.js"></script>
+
+<!-- Add script with custom handlers here -->
+<script type="text/javascript">
+/*
+ * If this page is loaded without any parameters, it will attempt to pull 
+ * manifests from the hardcoded sites below.
+ * 
+ * To load a specific canvas or image, include as many of the following:
+ * 
+ * activeCanvas - URI, canvas to load
+ * canvasRatio - percent ("%" optional), (speeds loading) height:width of canvas
+ * canvasHeight, canvasWidth - integer, (speeds display loading) to calculate aspect
+ * thisImg - URL, image to annotate when no canvas is available
+ **/
+// annotation variables
+// config of svgCanvas, preloader values
+    svgEditor.setConfig({
+        imgPath: 'js/sciat/images/interface/',
+        show_outside_canvas: false,
+        initStroke: {
+            color: '550000',
+            width: 3.5,
+            opacity: .5
+ 	},
+ 	initFill: {
+            color: '000000',
+            opacity: .5
+ 	},        
+        canvas_expansion: 3
+    });
+$(function(){
+  var thisCanvas;
+// Process incoming parameters, if available
+    if (getURLParameter("activeCanvas")) {
+        activeCanvas = getURLParameter("activeCanvas");
+        //reference this canvas to thisCanvas
+    } else if (getURLParameter("thisImg")) {
+        thisImg = getURLParameter("thisImg");
+        //create canvas for this
+//        thisCanvas = new canvas()
+    }
+});
+    
+</script>
+<title>Annotation SVG EDIT</title>
+</head>
+<body>
+    <div id="svg_editor">
+        
+        <div id="workarea">
+            <style id="styleoverrides" type="text/css" media="screen" scoped="scoped"></style>
+            <div id="svgcanvas"></div>
+        </div>
+        <div id="tools_top" class="tools_panel">
+            <!-- History buttons -->
+            <div id="history_panel">
+                <div class="push_button tool_button_disabled" id="tool_undo" title="Undo [Z]"></div>
+                <div class="push_button tool_button_disabled" id="tool_redo" title="Redo [Y]"></div>
+            </div>
+                
+            <!-- Buttons when a single element is selected -->
+            <div id="selected_panel">
+                <div class="toolset">
+                    <div class="tool_sep"></div>
+                    <div class="push_button" id="tool_delete" title="Delete Element [Delete/Backspace]"></div>
+                    <div class="tool_sep"></div>
+                    <div class="push_button" id="tool_move_top" title="Move to Top [Shift+Up]"></div>
+                    <div class="push_button" id="tool_move_bottom" title="Move to Bottom [Shift+Down]"></div>
+                    <div class="push_button" id="tool_topath" title="Convert to Path"></div>
+                    <div class="push_button" id="tool_reorient" title="Reorient path"></div>
+                    <div class="tool_sep"></div>
+                    <input id="elem_id" class="attr_changer" data-attr="id" type="hidden"/>
+                </div>
+            </div>
+                
+            <!-- Buttons when multiple elements are selected -->
+            <div id="multiselected_panel">
+                <div class="tool_sep"></div>
+                <div class="push_button" id="tool_delete_multi" title="Delete Selected Elements [Delete/Backspace]"></div>
+                <div class="push_button" id="tool_group" title="Group Elements [G]"></div>
+                <div class="push_button" id="tool_alignleft" title="Align Left"></div>
+                <div class="push_button" id="tool_alignright" title="Align Right"></div>
+                <div class="push_button" id="tool_aligntop" title="Align Top"></div>
+                <div class="push_button" id="tool_alignbottom" title="Align Bottom"></div>
+                <label id="tool_align_relative" style="display: none;"> 
+                    <span id="relativeToLabel">relative to:</span>
+                    <select id="align_relative_to" title="Align relative to ...">
+                        <option id="selected_objects" value="selected">selected objects</option>
+                    </select>
+                </label>
+                <div class="tool_sep"></div>
+            </div>
+                
+            <div id="g_panel">
+                <div class="tool_sep"></div>
+                <div class="push_button" id="tool_ungroup" title="Ungroup Elements [G]"></div>
+            </div>
+                
+            <div id="rect_panel">
+                <div class="toolset">
+                    <label id="rect_width_tool" title="Change rectangle width">
+                        <span id="rwidthLabel" class="icon_label"></span>
+                        <input id="rect_width" class="attr_changer" size="3" data-attr="width"/>
+                    </label>
+                    <label id="rect_height_tool" title="Change rectangle height">
+                        <span id="rheightLabel" class="icon_label"></span>
+                        <input id="rect_height" class="attr_changer" size="3" data-attr="height"/>
+                    </label>
+                </div>
+            </div>
+                
+            <div id="circle_panel">
+                <div class="toolset">
+                    <label id="tool_circle_cx">cx:
+                        <input id="circle_cx" class="attr_changer" title="Change circle's cx coordinate" size="3" data-attr="cx"/>
+                    </label>
+                    <label id="tool_circle_cy">cy:
+                        <input id="circle_cy" class="attr_changer" title="Change circle's cy coordinate" size="3" data-attr="cy"/>
+                    </label>
+                </div>
+                <div class="toolset">
+                    <label id="tool_circle_r">r:
+                        <input id="circle_r" class="attr_changer" title="Change circle's radius" size="3" data-attr="r"/>
+                    </label>
+                </div>
+            </div>
+                
+            <div id="ellipse_panel">
+                <div class="toolset">
+                    <label id="tool_ellipse_cx">cx:
+                        <input id="ellipse_cx" class="attr_changer" title="Change ellipse's cx coordinate" size="3" data-attr="cx"/>
+                    </label>
+                    <label id="tool_ellipse_cy">cy:
+                        <input id="ellipse_cy" class="attr_changer" title="Change ellipse's cy coordinate" size="3" data-attr="cy"/>
+                    </label>
+                </div>
+                <div class="toolset">
+                    <label id="tool_ellipse_rx">rx:
+                        <input id="ellipse_rx" class="attr_changer" title="Change ellipse's x radius" size="3" data-attr="rx"/>
+                    </label>
+                    <label id="tool_ellipse_ry">ry:
+                        <input id="ellipse_ry" class="attr_changer" title="Change ellipse's y radius" size="3" data-attr="ry"/>
+                    </label>
+                </div>
+            </div>
+                
+            <div id="line_panel">
+                <div class="toolset">
+                    <label id="tool_line_x1">x1:
+                        <input id="line_x1" class="attr_changer" title="Change line's starting x coordinate" size="3" data-attr="x1"/>
+                    </label>
+                    <label id="tool_line_y1">y1:
+                        <input id="line_y1" class="attr_changer" title="Change line's starting y coordinate" size="3" data-attr="y1"/>
+                    </label>
+                </div>
+                <div class="toolset">
+                    <label id="tool_line_x2">x2:
+                        <input id="line_x2" class="attr_changer" title="Change line's ending x coordinate" size="3" data-attr="x2"/>
+                    </label>
+                    <label id="tool_line_y2">y2:
+                        <input id="line_y2" class="attr_changer" title="Change line's ending y coordinate" size="3" data-attr="y2"/>
+                    </label>
+                </div>
+            </div>
+                
+            <div id="path_node_panel">
+                <div class="tool_sep"></div>
+                <div class="tool_button" id="tool_node_link" title="Link Control Points"></div>
+                <div class="tool_sep"></div>
+                <label id="tool_node_x">x:
+                    <input id="path_node_x" class="attr_changer" title="Change node's x coordinate" size="3" data-attr="x"/>
+                </label>
+                <label id="tool_node_y">y:
+                    <input id="path_node_y" class="attr_changer" title="Change node's y coordinate" size="3" data-attr="y"/>
+                </label>
+                    
+                <select id="seg_type" title="Change Segment type">
+                    <option id="straight_segments" selected="selected" value="4">Straight</option>
+                    <option id="curve_segments" value="6">Curve</option>
+                </select>
+                <div class="tool_button" id="tool_node_clone" title="Clone Node"></div>
+                <div class="tool_button" id="tool_node_delete" title="Delete Node"></div>
+                <div class="tool_button" id="tool_openclose_path" title="Open/close sub-path"></div>
+            </div>
+                
+            <div id="anno_data_panel">
+                <label id="annoTextLabel" title="Add data to the annotation">
+                    <input id="annotationText" class="attr_changer" data-attr="text_annotation" type="text" placeholder="Annotation Text Data"/>
+                </label>
+            </div>
+        </div> <!-- tools_top -->
+            
+        <div id="tools_left" class="tools_panel">
+            <div class="tool_button" id="tool_select" title="Select Tool"></div>
+            <div class="tool_button" id="tool_line" title="Line Tool"></div>
+            <div class="tool_button flyout_current" id="tools_rect_show" title="Square/Rect Tool">
+                <div class="flyout_arrow_horiz"></div>
+            </div>
+            <div class="tool_button flyout_current" id="tools_ellipse_show" title="Ellipse/Circle Tool">
+                <div class="flyout_arrow_horiz"></div>
+            </div>
+            <div class="tool_button" id="tool_path" title="Path Tool"></div>
+            <div class="tool_button" id="tool_zoom" title="Zoom Tool"></div>
+            <div style="display: none">
+                <div id="tool_rect" title="Rectangle"></div>
+                <div id="tool_square" title="Square"></div>
+                <div id="tool_fhrect" title="Free-Hand Rectangle"></div>
+                <div id="tool_ellipse" title="Ellipse"></div>
+                <div id="tool_circle" title="Circle"></div>
+                <div id="tool_fhellipse" title="Free-Hand Ellipse"></div>
+            </div>
+        </div> <!-- tools_left -->
+            
+        <div id="tools_bottom" class="tools_panel">
+            <!-- Zoom buttons -->
+            <div id="zoom_panel" class="toolset" title="Change zoom level">
+                <label>
+                    <span id="zoomLabel" class="zoom_tool icon_label"></span>
+                    <input id="zoom" size="3" value="100" type="text" />
+                </label>
+                <div id="zoom_dropdown" class="dropdown">
+                    <button></button>
+                    <ul>
+                        <li>400%</li>
+                        <li>200%</li>
+                        <li>100%</li>
+                        <li>50%</li>
+                        <li>25%</li>
+                        <li id="fit_to_canvas" data-val="canvas">Fit to canvas</li>
+                        <li id="fit_to_sel" data-val="selection">Fit to selection</li>
+                    </ul>
+                </div>
+                <div class="tool_sep"></div>
+            </div>
+            <div id="copyright"><span id="copyrightLabel">Powered by</span> <a href="http://svg-edit.googlecode.com/" target="_blank">SVG-edit v2.5.1</a></div>
+        </div> <!-- tools_bottom -->
+    </div> <!-- svg_editor -->
+        
+    <div id="dialog_box">
+        <div id="dialog_box_overlay"></div>
+        <div id="dialog_container">
+            <div id="dialog_content"></div>
+            <div id="dialog_buttons"></div>
+        </div>
+    </div>
+
+</body>
+</html>

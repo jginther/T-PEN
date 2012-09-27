@@ -54,7 +54,6 @@ public class manuscriptListings extends HttpServlet {
                     out.print("</div><br>");
                     int UID = 0;
                     if (session.getAttribute("UID") != null) {
-
                         UID = Integer.parseInt(session.getAttribute("UID").toString());
                     }
                     int[] msIDs = new int[0];
@@ -70,7 +69,7 @@ public class manuscriptListings extends HttpServlet {
                             }
                         }
                     }
-
+                    
                     for (int i = 0; i < mss.length; i++) {
                         out.print(mss[i].getCity() + ", " + mss[i].getRepository() + " " + mss[i].getCollection() + " (hosted by " + mss[i].getArchive() + ")\n");
                         if (mss[i].isRestricted()) {
@@ -98,11 +97,10 @@ public class manuscriptListings extends HttpServlet {
                     out.print("<h3>" + mss.length + " total manuscripts available</h3>");
                     out.print("</div><br>");
                     int UID = 0;
-
                     if (session.getAttribute("UID") != null) {
-
                         UID = Integer.parseInt(session.getAttribute("UID").toString());
                     }
+                    
                     int[] msIDs = new int[0];
                     if (UID > 0) {
                         User u = new User(UID);
@@ -116,7 +114,7 @@ public class manuscriptListings extends HttpServlet {
                             }
                         }
                     }
-
+                    
                     for (int i = 0; i < mss.length; i++) {
                         out.print(mss[i].getCity() + ", " + mss[i].getRepository() + " " + mss[i].getCollection() + " (hosted by " + mss[i].getArchive() + ")\n");
                         if (mss[i].isRestricted()) {
@@ -138,16 +136,13 @@ public class manuscriptListings extends HttpServlet {
                 }
             } else {
                 if (request.getParameter("repository") != null) {
-
                     String repo = request.getParameter("repository");
                     Manuscript[] mss = Manuscript.getManuscriptsByRepository(repo);
                     out.print("<div id=\"count\" class=\"right\">");
                     out.print("<h3>" + mss.length + " total manuscripts available</h3>");
                     out.print("</div><br>");
                     int UID = 0;
-
                     if (session.getAttribute("UID") != null) {
-
                         UID = Integer.parseInt(session.getAttribute("UID").toString());
                     }
                     int[] msIDs = new int[0];
@@ -179,7 +174,6 @@ public class manuscriptListings extends HttpServlet {
                         } else {
                             out.print("<a href=transcription.jsp?ms=" + mss[i].getID() + ">(Not marked)Start transcribing</a>" + "\n");
                         }
-
                         //out.print("<a href=transcription.jsp?ms=" + mss[i].getID() + ">Start transcribing</a>" + "\n");
                         out.print("<a href=addMStoProject.jsp?ms=" + mss[i].getID() + ">Add to project</a>" + "\n<br>");
                     }
@@ -191,7 +185,8 @@ public class manuscriptListings extends HttpServlet {
             out.close();
         }
     }
-
+    
+    
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /** 
      * Handles the HTTP <code>GET</code> method.

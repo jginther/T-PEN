@@ -13,7 +13,6 @@ var ie = (document.all) ? true : false;
 var bookmarkPadding = 0;        //adjustable padding for the bookmark bounding box
 var topImgPosition, bottomImgPosition, imgBottomHeight, bookmarkTop, bookmarkHeight, bookmarkLeft, bookmarkWidth, imgTopHeight, captionHeight;
 var screenMultiplier = 0;
-var ratio = 0;
 var jumpMultiplier = 0;
 var $prevLine, $prevNote;
 var maxImgTop = 0.7;
@@ -39,6 +38,7 @@ var isDestroyingLine = false;
 var focusItem = [$("#t1"), $("#t1")];
 var currentFocus;
 var clickPassed = false;
+var ParsingInterval, ResizeTopImg, WaitToFocus;
 // tools
 var liveTool = "none";
 var compareIndex = "none";
@@ -50,7 +50,7 @@ var selectRulerColor = 'black';
 var isAddingLines = true;
 var linebreakString = "<br>";
 var brokenText = [""];
-var imgRatio = $("#imgTopImg").width() / $("#imgTopImg").height();
+var imgRatio = 1;
 var leftovers;
 var columnCount;
 var isMember, permitOACr, permitOACw, permitExport, permitCopy, permitModify,
@@ -59,6 +59,7 @@ var isMember, permitOACr, permitOACw, permitExport, permitCopy, permitModify,
 isMember = permitOACr = permitOACw = permitExport = permitCopy = permitModify
     = permitAnnotation = permitButtons = permitParsing = permitMetadata
     = permitNotes = permitRead = false;
+var isSafari = Object.prototype.toString.call(window.HTMLElement).indexOf('Constructor') > 0;
 /* Screen Interactions */
 var Screen = {
     /**
@@ -79,38 +80,48 @@ var Screen = {
      *  
      */
     fullsize: function (event) {
-        if ($(event.target).hasClass('ui-resizable-handle')){
+        window.clearInterval(ParsingInterval);
+        window.clearInterval(WaitToFocus);
+        window.clearInterval(ResizeTopImg);
+        if ($(event.target).hasClass('ui-resizable-handle')) {
             return false;
         }
         if ($("#overlay").is(":visible")) {
             $("#overlay").click();
             return false;
         }
-        if (isMember || permitAnnotation) {
-            Annotation.autoSave();
+        if ($(".transcriptlet").size() == 0) {
+            // no lines to transcribe
+            var cfrm = confirm("There are no longer any lines on this page. Click 'OK' to reload the page or 'Cancel' to parse manually.");
         }
+//        if (isMember || permitAnnotation) {
+//            Annotation.autoSave();
+//        }
         liveTool = "none";
         $("#wrapper").resizable('disable');
         Interaction.activateToolBtn(null);
-        $("[id$='Split'], .line, .parsing, .adjustable,.parsingColumn").hide();
+        $("[id$='Split']").hide();
+        $(".line, .parsing, .adjustable,.parsingColumn").remove();
         $("#help").css({"left":"100%"}).fadeOut(1000);
         $("#helpPanels").css({"margin-left":"0px"});
         $("#imgTopImg").css({
             height  :   "auto",
             width   :   "100%"
         });
-        $("#imgTop").css("overflow","hidden");
-        $("#tools").width("0%").find("img").height("").width("");
+//        $("#imgTop").css("overflow","hidden");
+        $("#tools")
+//            .width("0%")
+            .find("img").height("").width("");
         $("#wrapper,#bookmark").show().width("100%").css("padding", "0");
+        $(".btnTitle").remove();
+        $("#workspace, #imgBottom, #location").show();
         isUnadjusted = isFullscreen = true;
-        if ($("#"+focusItem[1].attr('id')).length > 0){
-            window.setTimeout("Screen.updatePresentation(focusItem[1])", 1000);
-        } else {
-            window.setTimeout("focusOnLastEntry()", 1000);
-        }
+        currentFocus = "transcription" + focusItem[1].attr('id').substring(1);
+        WaitToFocus = window.setTimeout("focusItem[1].focusin()", 10);
         $("#fullscreenBtn").fadeOut(250);
         isZoomed = false;
-        return false;
+        event.preventDefault();
+//        return false;
     },
     /**
      * Adjusts font-size in transcription and notes fields based on size of screen.
@@ -133,14 +144,14 @@ var Screen = {
      * Reveals or hides note textarea.notes beneath current textarea.
      * Original id value is indexed. Inserted values match lineid.
      * 
-     * @param notes integer portion of notes id
+     * @param notes jQuery object .transcriplet
      */
     notesToggle: function (notes) {
-        $('#notes' + notes).slideToggle('normal', function () {
-            if ($(this).css('display')=='none') {
-                document.getElementById('transcription' + notes).focus();
+        notes.find('.notes').slideToggle('normal', function () {
+            if ($(this).is(':hidden')) {
+                notes.find('.theText').focus();
             } else {
-                this.focus();
+                notes.find('.notes').focus();
             }
             Screen.maintainWorkspace();
         });
@@ -159,17 +170,17 @@ var Screen = {
             var currentLineHeight = parseInt(focusItem[1].find(".lineHeight").val());
             var currentLineTop    = parseInt(focusItem[1].find(".lineTop").val());
             // top of column
-            var previousLine = (focusItem[1].prev().is('.transcriptlet') && (currentLineTop > parseInt(focusItem[1].prev().find(".lineTop").val())) ) ? parseInt(focusItem[1].prev().find(".lineHeight").val()) : focusItem[1].find(".lineTop").val()*screenMultiplier;
+            var previousLine = (focusItem[1].prev().is('.transcriptlet') && (currentLineTop > parseInt(focusItem[1].prev().find(".lineTop").val())) ) ? parseInt(focusItem[1].prev().find(".lineHeight").val()) : focusItem[1].find(".lineTop").val();
             // oversized for screen
             if (Page.height()-20 < (previousLine+currentLineHeight)*screenMultiplier+workspaceHeight()) previousLine = (previousLine==0) ? 0 : 20; 
             imgTopHeight = (previousLine+currentLineHeight)*screenMultiplier+20;//DEBUG+workspaceHeight(); // obscure behind workspace
             // topImgPosition, bookmarkTop - other bookmark dimensions stored in hidden inputs
             topImgPosition = (previousLine - currentLineTop)*screenMultiplier;
-            bookmarkTop = previousLine*screenMultiplier-bookmarkPadding*screenMultiplier;
-            bookmarkHeight = currentLineHeight*screenMultiplier+2*bookmarkPadding*screenMultiplier;
+            bookmarkTop = (previousLine - bookmarkPadding)*screenMultiplier;
+            bookmarkHeight = (currentLineHeight + 2*bookmarkPadding)*screenMultiplier;
             // bottomImgPosition
 //            bottomImgPosition = (focusItem[1].next().is(".transcriptlet")) ? -(parseInt(focusItem[1].next().find(".lineTop").val()))*screenMultiplier: -((currentLineTop)+currentLineHeight)*screenMultiplier;
-            bottomImgPosition = -((currentLineTop)+currentLineHeight)*screenMultiplier;
+            bottomImgPosition = -(currentLineTop+currentLineHeight)*screenMultiplier;
             //imgBottomHeight = Page.height()-imgTopHeight;
             //control the empty space, if needed
             if (imgTopHeight > ($("#imgTopImg").height()+topImgPosition)) imgTopHeight = ($("#imgTopImg").height()+topImgPosition);//DEBUG+workspaceHeight());
@@ -229,13 +240,13 @@ var Screen = {
 //        var transcriptletSlide;
 //        transcriptletSlide = (parseInt(focusItem[1].find(".lineTop").val()) < parseInt(focusItem[0].find(".lineTop").val())) ? -60: 100;
         // include any closing tags
-        focusItem[0].removeClass('noTransition').find(".xmlClosingTags").children().appendTo(focusItem[1].find(".xmlClosingTags"));
+        focusItem[0].addClass("transcriptletBefore").removeClass('noTransition').find(".xmlClosingTags").children().appendTo(focusItem[1].find(".xmlClosingTags"));
         Interaction.updateClosingTags();
         // slide in the new transcriptlet
         focusItem[1].css({"width":"auto","z-index":"5"});
-        focusItem[1].removeClass("transcriptletBefore transcriptletAfter")
+        focusItem[1].removeClass("transcriptletBefore transcriptletAfter");
         //place the cursor and scroll at the top of the textarea
-        .find(".theText").scrollTop(0).eq(0)[0].setSelectionRange(0,0);
+        Interaction.setCursorPosition(focusItem[1].find(".theText")[0],0);
         //slide out old transcriptlet and hide offscreen
 //        focusItem[0].one("webkitTransitionEnd transitionend oTransitionEnd",function(){
 //            $(this).css({
@@ -244,11 +255,12 @@ var Screen = {
 //                "z-index":"3"
 //            });  
 //        });
-        focusItem[0].css({
-            "width":focusItem[0].width()
-        });
+//        focusItem[0].css({
+//            "width":focusItem[0].width()
+//        });
         focusItem[1].prevAll(".transcriptlet").addClass("transcriptletBefore").removeClass("transcriptletAfter");
         focusItem[1].nextAll(".transcriptlet").addClass("transcriptletAfter").removeClass("transcriptletBefore");       
+//        focusItem[1].find(".theText").focus();
         isUnadjusted = true;
 //        if (focusItem[0].attr("id")==focusItem[1].attr("id")) {
 //            focusItem[1].css({
@@ -340,6 +352,10 @@ var Screen = {
         Screen.textSize();
         //prevent textareas from going invisible and not moving out of the workspace
         focusItem[1].removeClass("transcriptletBefore transcriptletAfter");
+        if(document.activeElement.id == "transcriptionPage"){
+            // nothing is focused on somehow
+            focusItem[1].find('.theText')[0].focus();
+        }
     },
     /**
      * Determines action based on transcription line clicked and tool in use.
@@ -379,6 +395,7 @@ var Screen = {
                 Interaction.buildClosingTags(tags.split("\n"));
             }
         });
+        focusText.focus();
     },
     /**
      *  Cleans up the display when the window has been resized.
@@ -431,12 +448,12 @@ var Parsing = {
         if(!isMember && !permitParsing)return false;
         $("#wrapper").resizable('disable');
         var arrowSpacing = (Page.height()-80)/4; // 80 = 16px * 5 arrows
-        $("#fullscreenBtn").hide()
+        $("#fullscreenBtn,#location").hide()
 //            .show().find("span")
 //            .css({"margin-bottom":arrowSpacing+"px"});
         $("#tools").children("[id$='Split']").hide();
-        var topImg = $("#imgTopImg");
-        imgRatio = topImg[0].width/topImg[0].height;
+//        var topImg = $("#imgTopImg");
+        imgRatio = $("#imgTopImg")[0].width/$("#imgTopImg")[0].height;
         var wrapWidth = imgRatio*Page.height();
         var PAGEWIDTH = Page.width();
         if (wrapWidth > PAGEWIDTH-350)wrapWidth = PAGEWIDTH-350;
@@ -444,29 +461,43 @@ var Parsing = {
         $("#parsingSplit").css({
             "width"   :   "auto"
         }).fadeIn();
-        $("#imgTop").css({
-            "height": Page.height()
-        });
-        topImg.css({
+        $("#imgTopImg").css({
                 "top":"0px",
                 "left":"0px",
                 "height":"auto",
-                "width":"100%",
+//                "width":"100%",
                 "overflow":"auto"
         });
         $("#wrapper").width(wrapWidth/PAGEWIDTH*100+"%").css("padding","0");
-        window.setTimeout(function(){
-            Interaction.writeLines(topImg);
+//        $("#workspace,#imgBottom").fadeOut();
+        $("#workspace,#imgBottom").hide();
+        // Safari DEBUG to include min-height
+        ResizeTopImg = window.setTimeout('$("#imgTop").height($("#imgTopImg").height())', 850);
+        ParsingInterval = window.setTimeout(function(){
+            Interaction.writeLines($("#imgTopImg"));
             $("#imgTop").children(".line").addClass("parsing").removeClass("line");
             $("#bookmark").css("left","-9999px");
-            if (topImg.height() > Page.height()) {
-                Parsing.hideWorkspaceForParsing(); // assures that the resizing of the img completely took place, may cause loop
+            var firstLine = $(".parsing").filter(":first");
+            if ($.browser.opera) firstLine += 2;
+            // Find the correct height for a well-displayed tool with a full-height image.
+            var correctHeight = ($("#imgTopImg").height() > Page.height()) ? -999 : firstLine.attr("lineheight") * $("#imgTopImg").height()/1000;
+            if ((Math.abs(firstLine.height()-correctHeight) > 2.5) || ($("#imgTopImg").height() > Page.height())) {
+                // assures that the resizing of the img completely took place
+                // FIXME may cause slow loop
+                console.log("parsing adjustment ("+firstLine.height()+", "+correctHeight+")");
+                Parsing.hideWorkspaceForParsing(); 
+            } else {
+                //hack to make the image draw correctly in some cases
+                $("#imgTopImg").css('top','auto');
+                $("#imgTopImg").css('top','0');
+                console.log("image position confirmed");
+                window.clearInterval(ParsingInterval);
             }
-        },1500);
+        },1200);
     },
     /**
      * Resets the buttons to move between lines attached to each transcriptlet.
-     * Called on $.load and in cleanupTrranscriptlets().
+     * Called on $.load and in cleanupTranscriptlets().
      * 'Next Page', 'Previous Page', and 'End of Page'
      *  
      *  @see cleanupTranscriptlets()
@@ -496,7 +527,7 @@ var Parsing = {
      * @column jQuery object, column to be removed
      */
     removeColumn: function(column){
-         if(!isMember && !permitParsing)return false;
+        if(!isMember && !permitParsing)return false;
         if(column.attr("hastranscription")==="true"){
             var cfrm = confirm("This column contains transcription data that will be lost.\n\nContinue?");
             if (!cfrm) return false;
@@ -529,8 +560,8 @@ var Parsing = {
                 + parseInt(removedLine.attr("lineheight"))
                 - parseInt($(e).attr("linetop"));
             $(e).css({
-                "height" :  Page.convertPercent(newLineHeight/1000,2),
-                "top" :     $(e).css("top")
+                "height" :  Page.convertPercent(newLineHeight/1000,2)+"%",
+                "top" :     $(e).css("top")+"%"
             }).addClass("newDiv").attr({
                 "lineheight":   newLineHeight
             });
@@ -645,7 +676,7 @@ var Parsing = {
         $(e)
             .css("height",newClick)
             .after(newLine);
-        this.organizePage(e);
+//        this.organizePage(e);
     },
     /**
      * Inserts new transcriptlet when line is added.
@@ -666,18 +697,19 @@ var Parsing = {
             isNotColumn = false;
         } 
         var $afterThis = $(".transcriptlet[data-lineid='"+afterThisID+"']");
-        var newTranscriptlet = ["<div class='transcriptlet' id='t",newLineID,"' data-lineid='",newLineID,"' style='opacity:0;position:absolute;top:9000px;z-index:3;'>\n",
-            "<span class='counter ui-corner-all ui-state-active ui-button'>Inserted Line</span>\n",
+        var newTranscriptlet = [
+            "<div class='transcriptlet transcriptletBefore' id='t",newLineID,
+            "' data-lineid='",newLineID, // took out style DEBUG
+            "'>\n",
+            "<span class='counter wLeft ui-corner-all ui-state-active ui-button'>Inserted Line</span>\n",
             "<input class='lineWidth' type='hidden' value='",newW,"'/>\n",
             "<input class='lineHeight' type='hidden' value='",newH,"'/>\n",
             "<input class='lineLeft' type='hidden' value='",newX,"'/>\n",
             "<input class='lineTop' type='hidden' value='",newY,"'/>\n",
-            "<span id='note",newLineID,"' onclick='Screen.notesToggle(\"",newLineID,"\");' class='addNotes ui-corner-all ui-state-default ui-button'><span class='ui-icon ui-icon-note right'></span>Add Notes</span>\n",
-            "<span class='lineNav'>",
-            "</span>\n",
-            "<textarea id='transcription",newLineID,"' class='ui-corner-all theText' tabindex='",(parseInt($afterThis.find('.theText').attr('tabindex'))+1),"' onfocus='Interaction.newFocus(this);' onkeydown='return Interaction.keyhandler(event);' style='height:50px;'></textarea>\n",
+            "<span class='addNotes wRight ui-corner-all ui-state-default ui-button'><span class='ui-icon ui-icon-note right'></span>Add Notes</span>\n",
+            "<textarea id='transcription",newLineID,"' class='ui-corner-all theText' onkeydown='return Interaction.keyhandler(event);' style='height:50px;'></textarea>\n",
             "<div class='xmlClosingTags' id='closeTags2'></div>\n",
-            "<textarea id='notes",newLineID,"' class='ui-corner-all notes' onfocus='Interaction.newFocus(this);' style='display:none;'></textarea>\n",
+            "<textarea id='notes",newLineID,"' class='ui-corner-all notes'' style='display:none;'></textarea>\n",
             "</div>"];
         if (isNotColumn){
             //update transcriptlet that was split
@@ -717,9 +749,11 @@ var Parsing = {
         }
         //remove transcriptlet
         $(".transcriptlet[data-lineid='"+lineid+"']").remove();
-        Preview.updateCurrent();
+        Parsing.cleanupTranscriptlets();
     },
     /**
+     * @deprecated Nobody cares about tabIndex anymore
+     * 
      * Coordinates tabindex and link references for newly added transcriptlets.
      * 
      * @param e recently changed element
@@ -758,14 +792,14 @@ var Parsing = {
                 handles     : "n,s,w,e",
                 containment : 'parent',
                 start       : function(event,ui){
-                    originalX = ui.originalPosition.left;
-                    originalY = ui.originalPosition.top;
-                    originalW = ui.originalSize.width;
-                    originalH = ui.originalSize.height;
-                    var newX = ui.position.left;
-                    var newY = ui.position.top;
-                    var newW = ui.size.width;
-                    var newH = ui.size.height;
+//                    originalX = ui.originalPosition.left;
+//                    originalY = ui.originalPosition.top;
+//                    originalW = ui.originalSize.width;
+//                    originalH = ui.originalSize.height;
+//                    var newX = ui.position.left;
+//                    var newY = ui.position.top;
+//                    var newW = ui.size.width;
+//                    var newH = ui.size.height;
                     $("#progress").html("Adjusting Columns - unsaved").fadeIn();
                     $("#columnResizing").show();
                     $("#sidebar").fadeIn();
@@ -775,10 +809,14 @@ var Parsing = {
                 },
                 resize      : function(event,ui){
                     if(adjustment=="new"){
-                        newX = ui.position.left;
-                        newY = ui.position.top;
-                        newW = ui.size.width;
-                        newH = ui.size.height;
+                        var originalX = ui.originalPosition.left;
+                        var originalY = ui.originalPosition.top;
+                        var originalW = ui.originalSize.width;
+                        var originalH = ui.originalSize.height;
+                        var newX = ui.position.left;
+                        var newY = ui.position.top;
+                        var newW = ui.size.width;
+                        var newH = ui.size.height;
                         if (Math.abs(originalW-newW)>5) adjustment = "right";
                         if (Math.abs(originalH-newH)>5) adjustment = "bottom";
                         if (Math.abs(originalX-newX)>5) adjustment = "left";    // a left change would affect w and x, order matters
@@ -789,20 +827,38 @@ var Parsing = {
                 stop        : function(event,ui){
                     $("#progress").html("Column Resized - Saving...");
                     var parseRatio = $("#imgTopImg").height()/1000;
+                    var originalX = ui.originalPosition.left;
+                    var originalY = ui.originalPosition.top;
+                    var originalW = ui.originalSize.width;
+                    var originalH = ui.originalSize.height;
+                    var newX = ui.position.left;
+                    var newY = ui.position.top;
+                    var newW = ui.size.width;
+                    var newH = ui.size.height;
+                    var oldHeight, oldTop, oldLeft, newWidth, newLeft;
                     if(adjustment=="top"){
                         //save a new height for the top line;
                         var startLine = $(".line[data-lineid='"+thisColumnID[0]+"']");
-                        var oldHeight = parseInt(startLine.attr("lineheight"));
-                        var oldTop = parseInt(startLine.attr("linetop"));
-                        newY = ui.position.top;
+                        oldHeight = parseInt(startLine.attr("lineheight"));
+                        oldTop = parseInt(startLine.attr("linetop"));
+                        
                         startLine.attr({
                             "linetop"    : Math.round(newY/parseRatio),
-                            "lineheight" : Math.round(oldTop-newY/parseRatio+oldHeight)
+                            "lineheight" : Math.round(oldTop+oldHeight-newY/parseRatio)
                         });
                         if (parseInt(startLine.attr("lineheight"))<0){
-                            //alert("You have set the top of the column below the bottom of its top line.\n\nThis may cause unforeseen problems.");
+                            // top of the column is below the bottom of its top line
+                            var newTopLine = startLine;
                             do {
+                                newTopLine = startLine.next('.line');
                                 Parsing.updateLine(null, Parsing.removeLine(startLine));
+                                startLine = newTopLine;
+                                oldHeight = parseInt(startLine.attr("lineheight"));
+                                oldTop = parseInt(startLine.attr("linetop"));
+                                startLine.attr({
+                                    "linetop"    : Math.round(newY/parseRatio),
+                                    "lineheight" : Math.round(oldTop+oldHeight-newY/parseRatio)
+                                });
                             } while (startLine.attr("lineheight")<0);
                             Linebreak.saveWholePage();
                         };
@@ -810,48 +866,58 @@ var Parsing = {
 //                            .addClass("isUnsaved")
                             .find(".lineTop").val(startLine.attr("linetop")).end()
                             .find(".lineHeight").val(startLine.attr("lineheight"));
-                        if(Parsing.updateLine(startLine)=="success"){
-                            $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
-                        };
-                        //FIXME this does not actualy detect success
-                            $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
+//FIXME this does not actualy detect success
+//                        if(Parsing.updateLine(startLine)=="success"){
+//                            $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
+//                        };
+                        Parsing.updateLine(startLine);
+                        $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
                     } else if(adjustment=="bottom"){
+                        
                         //save a new height for the bottom line
                         var endLine = $(".line[data-lineid='"+thisColumnID[1]+"']");
-                        var oldHeight = parseInt(endLine.attr("lineheight"));
-                        var oldTop = parseInt(endLine.attr("linetop"));
-                        newH = ui.size.height;
+                        oldHeight = parseInt(endLine.attr("lineheight"));
+                        oldTop = parseInt(endLine.attr("linetop"));
                         endLine.attr({
                             "lineheight" : Math.round((newH+originalY)/parseRatio-oldTop)
                         });
                         if (parseInt(endLine.attr("lineheight"))<0){
-                            //alert("You have set the bottom of the column above the top of its bottom line.\n\nThis may cause unforeseen problems.");
+                            //the bottom line isnt large enough to account for the change, delete lines until we get to a  line that, wehn combined with the deleted lines
+                            //can account for the requested change.
                             do {
-                                endLine = endLine.prev(".line");
+                                oldHeight = parseInt(endLine.attr("lineheight"));
+                                oldTop = parseInt(endLine.attr("linetop"));
+                                var nextline = endLine.prev(".line");
                                 Parsing.updateLine(null, Parsing.removeLine(endLine));
+                                //adjustedOldTop=oldTop-parseInt(endLine.attr("lineheight"));
+                                
+                                nextline.attr({
+                                    "lineheight" : Math.round((newH+originalY)/parseRatio-oldTop)
+                                });
+                                endLine=nextline;
+                                //oldTop=adjustedOldTop;
                             } while (endLine.attr("lineheight")<1);
                             Linebreak.saveWholePage();
                         };
                         $(".transcriptlet[data-lineid='"+thisColumnID[1]+"']")
                             .find(".lineTop").val(endLine.attr("linetop")).end()
                             .find(".lineHeight").val(endLine.attr("lineheight"));
-                        if(Parsing.updateLine(endLine)=="success"){
-                            $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
-                        };
-                        //FIXME this does not actualy detect success
+//FIXME this does not actualy detect success
+//                        if(Parsing.updateLine(endLine)=="success"){
+//                            $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
+//                        };
+                            Parsing.updateLine(endLine);
                             $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
                     } else if(adjustment=="left"){
                         //save a new left,width for all these lines
-                        newW = ui.size.width;
-                        newX = ui.position.left;
-                        var guideLine = $(".line[data-lineid='"+thisColumnID[0]+"']");
-                        var oldLeft = parseInt(guideLine.attr("lineleft"));
-                        var newLineW = Math.round(newW/parseRatio);
-                        var newLineX = Math.round(newX/parseRatio);
+                        var leftGuide = $(".line[data-lineid='"+thisColumnID[0]+"']");
+                        oldLeft = parseInt(leftGuide.attr("lineleft"));
+                        newWidth = Math.round(newW/parseRatio);
+                        newLeft = Math.round(newX/parseRatio);
                         $(".line[lineleft='"+oldLeft+"']").each(function(){
                             $(this).attr({
-                                "lineleft" : newLineX,
-                                "linewidth": newLineW
+                                "lineleft" : newLeft,
+                                "linewidth": newWidth
                             });
                             $(".transcriptlet[data-lineid='"+$(this).attr("data-lineid")+"']")
                                 .find(".lineLeft").val($(this).attr("lineleft")).end()
@@ -859,27 +925,26 @@ var Parsing = {
                         });
                         $.post('batchUpdateLinePositions', {
                             "lineID"  : thisColumnID[0],
-                            "newwidth": newLineW,
-                            "newleft" : newLineX
+                            "newwidth": newWidth,
+                            "newleft" : newLeft
                         }, function(){
                             $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
                         },'html');
                     } else if (adjustment=="right"){
                         //save a new width for all these lines
-                        newW = ui.size.width;
-                        var guideLine = $(".line[data-lineid='"+thisColumnID[0]+"']");
-                        var oldLeft = parseInt(guideLine.attr("lineleft"));
-                        var newLineW = Math.round(newW/parseRatio);
+                        var rightGuide = $(".line[data-lineid='"+thisColumnID[0]+"']");
+                        oldLeft = parseInt(rightGuide.attr("lineleft"));
+                        newWidth = Math.round(newW/parseRatio);
                         $(".line[lineleft='"+oldLeft+"']").each(function(){
                             $(this).attr({
-                                "linewidth": newLineW
+                                "linewidth": newWidth
                             });
                             $(".transcriptlet[data-lineid='"+$(this).attr("data-lineid")+"']")
                                 .find(".lineWidth").val($(this).attr("linewidth"));
                         });
                         $.post('batchUpdateLinePositions', {
                             "lineID"  : thisColumnID[0],
-                            "newwidth": newLineW
+                            "newwidth": newWidth
                         }, function(){
                             $("#progress").html("Column Saved").delay(3000).fadeOut(1000);
                         },'html');
@@ -887,6 +952,7 @@ var Parsing = {
                         $("#progress").html("No changes made.").delay(3000).fadeOut(1000);
                     }
                     $("#lineResizing").delay(3000).fadeOut(1000);
+                    adjustment = "";
                 }
             });
         }
@@ -978,13 +1044,16 @@ var Parsing = {
                 .find(".counter").text("Column:"+String.fromCharCode(64+columnCtr).toUpperCase()+" Line:"+(lineCtr-columnLineShift));  
         });
         this.setLineNavBtns();
-        Preview.updateCurrent();
+        Preview.rebuild();
+        // realign the focus with something in the DOM
+        focusItem[1] = $('#'+focusItem[1][0].id);
     },
     /** 
      * Restructures lines overlay as columns.
      * Used in parsing tool.
      */
      linesToColumns: function(){
+        if ($(".transcriptlet").size() == 0) return false;
         //update lines in case of changes
         $(".parsingColumn").remove();
         Interaction.writeLines($("#imgTopImg"));
@@ -1079,8 +1148,9 @@ var Preview = {
         var transcriptionText = ($(line).hasClass("previewText")) ? ".theText" : ".notes";
         var pair = $(".transcriptlet[data-lineid='"+focusLineID+"']").find(transcriptionText);
         if ($(line).hasClass("currentPage")){
-            if (pair.parent(".transcriptlet").position().top === 9000)
-                pair.show().focus();
+            if (pair.parent(".transcriptlet").position().top)
+                Screen.updatePresentation(pair.parent(".transcriptlet"));
+                line.focus();
             $(line).keyup(function(){
                 Data.makeUnsaved();
                 pair.val($(this).text());
@@ -1109,9 +1179,21 @@ var Preview = {
     },
     /**
      *  Syncs the current line of transcription in the preview tool when changes
-     *  are made in the main interface.
+     *  are made in the main interface. Called on keyup in .theText and .notes.
+     *  
+     *  @param current element textarea in which change is made.
      */
-    updateCurrent: function(){
+     updateLine: function(current) {
+            var lineid = $(current).parent(".transcriptlet").attr("data-lineid");
+            var previewText = ($(current).hasClass("theText")) ? ".previewText" : ".previewNotes";
+            $(".previewLineNumber[data-lineid='"+lineid+"']").siblings(previewText).html(Preview.scrub($(current).val()));
+            Data.makeUnsaved();
+     },
+    /**
+     *  Rebuilds every line of the preview when changed by parsing.
+     *  
+     */
+    rebuild: function(){
         var allTrans = $(".transcriptlet");
         var columnValue = 65;
         var columnLineShift = 0;
@@ -1119,6 +1201,7 @@ var Preview = {
         // empty the current page
         var currentPreview = $("[data-pagenumber='"+folio+"']");
         currentPreview.find(".previewLine").remove();
+        var newPage = new Array();
         allTrans.each(function(index){
             var columnLeft = $(this).find(".lineLeft").val();
             if (columnLeft > oldLeftPreview){
@@ -1126,7 +1209,7 @@ var Preview = {
                 columnLineShift = (index+1);
                 oldLeftPreview = columnLeft;
             }
-            var newLine = ["<div class='previewLine' data-linenumber='",
+            newPage.push("<div class='previewLine' data-linenumber='",
                     (index+1),"'>",
                 "<span class='previewLineNumber' data-lineid='",
                     $(this).attr("data-lineid"),"' data-linenumber='",
@@ -1136,13 +1219,13 @@ var Preview = {
                     String.fromCharCode(columnValue),(index+1-columnLineShift),
                     "</span>",
                 "<span class='previewText currentPage' contenteditable=true>",
-                    $(this).find(".theText").val(),
-                    "<span class='previewLinebreak'></span></span>",
+                    Preview.scrub($(this).find(".theText").val()),
+                    "</span><span class='previewLinebreak'></span>",
                 "<span class='previewNotes currentPage' contenteditable=true>",
-                    $(this).find(".notes").val(),"</span>"];
-            currentPreview.append(newLine.join(""));
+                    Preview.scrub($(this).find(".notes").val()),"</span></div>");
         });
-    },
+        currentPreview.find('.previewFolioNumber').after(newPage.join(""));
+     },
     /**
      *  Cleans up the preview tool display.
      */
@@ -1160,7 +1243,7 @@ var Preview = {
     scrub: function(thisText){
         var workingText = $("<div/>").text(thisText).html();
         var encodedText = [workingText];
-        if (workingText.indexOf("&lt;")>-1){
+        if (workingText.indexOf("&gt;")>-1){
             var open = workingText.indexOf("&lt;");
             var beginTags = new Array();
             var endTags = new Array();
@@ -1170,7 +1253,9 @@ var Preview = {
                 var close = workingText.indexOf("&gt;",beginTags[i]);
                 if (close > -1){
                     endTags[i] = (close+4);
-                } else {break;}
+                } else {
+                    beginTags[0] = null;
+                    break;}
                 open = workingText.indexOf("&lt;",endTags[i]);
                 i++;
             }
@@ -1188,203 +1273,261 @@ var Preview = {
         if(oeLen>0)encodedText.push(workingText.substring(endTags[oeLen-1]));
         }
         return encodedText.join("");
+    },
+    /**
+     *  Animates scrolling to the current page (middle of 3 shown)
+     *  in the Preview Tool. Also restores the intention of the selected options.
+     */
+    scrollToCurrentPage: function(){
+        var pageOffset = $(".previewPage").filter(":first").height() + 20;
+        $("#previewDiv").animate({
+            scrollTop:pageOffset
+        },500);
+        $("#previewAnnotations,#previewNotes").filter(".ui-state-active").each(
+            function(){
+                if ($("."+this.id).is(":hidden")){
+                    $("."+this.id).show();
+                    Preview.scrollToCurrentPage();
+                }
+            });
     }
 }
-var Annotation = {
-    /** 
-     *  Save annotations made within the tool.
-     *  
-     *  @param x int left position of annotation
-     *  @param y int top position of annotation
-     *  @param h int height of annotation
-     *  @param w int width of annotation
-     *  @param text String attached plaintext data
-     *  @param folio int unique id of folio
-     *  @param projectID int unique id of project
-     */
-    save: function(x,y,h,w,text,folio,projectID){
-        if(!isMember && !permitAnnotation)return false;
-        var params = new Array({name:"create",value:true});
-        if (folio != undefined) params.push({name:"folio",value:folio});
-        if (projectID != undefined) params.push({name:"projectID",value:projectID});
-        if (text != undefined) params.push({name:"text",value:text});
-        try {
-            params.push({name:"x",value:x},{name:"y",value:y},{name:"h",value:h},{name:"w",value:w});
-        } catch (err){
-            alert ("Failed to save: missing location value");
-            return false;
-        }
-        $.post('annotation', $.param(params), function(data){
-            $('[data-id]="new"').eq(0).removeClass('pendingSave').attr('data-id',data);
-        }, "html");
-    },
-    /**
-     *  Auto-saves annotations when the tool is closed or the page is exited.
-     */
-    autoSave: function(){
-        if(!isMember && !permitAnnotation)return false;
-        var $unsaved = $(".pendingSave");
-        $unsaved.each(function(){
-            var $this = $(this);
-            var a = {
-                x           : $this.attr("data-x"),
-                y           : $this.attr("data-y"),
-                h           : $this.attr("data-height"),
-                w           : $this.attr("data-width"),
-                text        : $this.attr("title"),
-                annotationID: $this.attr("data-id")
-            };
-            if (a.annotationID == "new"){
-                // new annotation
-                Annotation.save(a.x, a.y, a.h, a.w, a.text, folio, projectID);
-            } else {
-                // update annotation
-                Annotation.update(a.x, a.y, a.h, a.w, a.text, folio, projectID, a.annotationID);
-            }
-        });
-    },
-    /**
-     *  Deletes annotation from interface and database.
-     *  
-     *  @param annotationID int unique id of annotation to be removed
-     */
-    remove: function(annotationID){
-        if(!isMember && !permitAnnotation)return false;
-        var params = new Array({name:"id",value:annotationID},{name:"delete",value:true});
-        $.post('annotation', $.param(params), function(data){
-            //deleted
-        }, "html");      
-    },
-    /**
-     *  Updates an existing annotation.
-     *  
-     *  @param x int left position of annotation
-     *  @param y int top position of annotation
-     *  @param h int height of annotation
-     *  @param w int width of annotation
-     *  @param text String attached plaintext data
-     *  @param folio int unique id of folio
-     *  @param projectID int unique id of project
-     *  @param annotationID int uniqueid of updated annotation
-     */
-    update: function(x,y,h,w,text,folio,projectID,annotationID){
-        if(!isMember && !permitAnnotation)return false;
-        var params = new Array({name:"update",value:true});
-        if (folio != undefined) params.push({name:"folio",value:folio});
-        if (projectID != undefined) params.push({name:"projectID",value:projectID});
-        if (text != undefined) params.push({name:"text",value:text});
-        try {
-            params.push({name:"id",value:annotationID},{name:"x",value:x},{name:"y",value:y},{name:"h",value:h},{name:"w",value:w});
-        } catch (err){
-            alert ("Failed to save: missing location value");
-            return false;
-        }
-        $.post('annotation', $.param(params), function(data){
-            $('[data-id]="'+annotationID+'"').removeClass('pendingSave');
-        }, "html");
-    },
-    /**
-     *  Handles changes to the options in the annotation tool.
-     *  
-     *  @param elem element clicked from .toolLinks
-     */
-    options: function(elem){
-        if(!isMember && !permitAnnotation)return false;
-        if ($(elem).hasClass("ui-state-active") && $(elem).is("#highlightAnnotation")){
-            $("#defaultInst").show().siblings().hide();
-            $(elem).removeClass("ui-state-active");
-            $(".annotation").removeClass("newAnno adjustAnno deleteAnno showAnno");
-            $("#defaultInst").show().siblings().hide();
-        } else {
-            $(elem).addClass("ui-state-active").siblings().removeClass("ui-state-active");
-            $(".annotation").removeClass("newAnno adjustAnno deleteAnno showAnno").draggable('destroy').resizable('destroy');
-            $("#"+$(elem).attr('id')+"Inst").show().siblings().hide();
-            switch ($(elem).index()){
-                case 0:     //#highlightAnnotation
-                    $(".annotation").addClass('showAnno');
-                    break;
-                case 1:     //#addAnnotation
-                    var newAnnotation = $("<div/>");
-                    newAnnotation.addClass("annotation newAnno").css({
-                        'width'     : "150px",
-                        'height'    : "150px",
-                        'top'       : $("#annotations").height()/2-75+"px",
-                        'left'      : $("#annotations").width()/2-75+"px"
-                    }).attr('title','').appendTo("#annotations");
-                    $('.newAnno').draggable({
-                        stop: function(event,ui){Annotation.adjust($(this),ui)},
-                        containment: $("#annotations")
-                    }).resizable({
-                        stop: function(event,ui){Annotation.adjust($(this),ui)},
-                        containment: $("#annotations"),
-                        minHeight: 5,
-                        minWidth: 5,
-                        handles: 'all'
-                    });
-                    break;
-            }
-        }
-    },
-    /**
-     *  Create and display annotations within the annotation tool.
-     */
-    display: function() {
-        var allAnnos = $(".annotation");
-        var ratio = $("#annotationDiv").height()/1000;
-        allAnnos.each(function(){
-            var a = $(this);
-            a.css({
-                'width'  :    a.attr('data-width')*ratio+"px",
-                'height' :    a.attr('data-height')*ratio+"px",
-                'left'   :    a.attr('data-x')*ratio+"px",
-                'top'    :    a.attr('data-y')*ratio+"px",
-                'display':'block'
-            });
-        });
-        $("#defaultInst").show().siblings().hide();
-    },
-    /**
-     *  Updates the annotation attributes in preparation for saving.
-     *  
-     *  @param $anno jQuery object, annotation updated
-     *  @param ui object from jQuery resizable
-     */
-    adjust: function($anno,ui){
-        if(!isMember && !permitAnnotation)return false;
-        if ($anno.attr('data-id')==null) $anno.attr('data-id','new');
-        var ratio = $("#annotations").height()/1000;
-        if (ui.size != null){
-             $anno.attr({
-                'data-width'    : parseInt(ui.size.width/ratio),
-                'data-height'   : parseInt(ui.size.height/ratio)
-            });
-        }
-        $anno.attr({
-            'data-x'        : parseInt(ui.position.left/ratio),
-            'data-y'        : parseInt(ui.position.top/ratio)
-        })
-        .addClass('pendingSave');
-    },
-    /**
-     *  Reveals the text of an annotation when hovering over the region.
-     *  
-     *  @param $a jQuery object, annotation
-     */
-    showText: function($a){
-        $a.addClass('activeAnnotation');
-        var annoText = $a.attr('title');
-        $("#annotationText").val(annoText);
-    },
-    /**
-     *  Update text of annotation
-     *  
-     *  @param a element, annotation
-     */
-    updateText: function(){
-        if(!isMember && !permitAnnotation)return false;
-        $('.activeAnnotation').attr('title',$("#annotationText").val()).addClass('pendingSave');
-    }
-};
+// old news. replaced with SCIAT
+//var Annotation = {
+//    /** 
+//     *  Save annotations made within the tool.
+//     *  
+//     *  @param x int left position of annotation
+//     *  @param y int top position of annotation
+//     *  @param h int height of annotation
+//     *  @param w int width of annotation
+//     *  @param text String attached plaintext data
+//     *  @param folio int unique id of folio
+//     *  @param projectID int unique id of project
+//     */
+//    save: function(x,y,h,w,text,folio,projectID){
+//        if(!isMember && !permitAnnotation)return false;
+//        var params = new Array({name:"create",value:true});
+//        if (folio != undefined) params.push({name:"folio",value:folio});
+//        if (projectID != undefined) params.push({name:"projectID",value:projectID});
+//        if (text != undefined) params.push({name:"text",value:text});
+//        try {
+//            params.push({name:"x",value:x},{name:"y",value:y},{name:"h",value:h},{name:"w",value:w});
+//        } catch (err){
+//            alert ("Failed to save: missing location value");
+//            return false;
+//        }
+//        $.post('annotation', $.param(params), function(data){
+//            $('[data-id]="new"').eq(0).removeClass('pendingSave').attr('data-id',data);
+//        }, "html");
+//    },
+//    /**
+//     *  Auto-saves annotations when the tool is closed or the page is exited.
+//     */
+//    autoSave: function(){
+//        if(!isMember && !permitAnnotation)return false;
+//        var $unsaved = $(".pendingSave");
+//        $unsaved.each(function(){
+//            var $this = $(this);
+//            var a = {
+//                x           : $this.attr("data-x"),
+//                y           : $this.attr("data-y"),
+//                h           : $this.attr("data-height"),
+//                w           : $this.attr("data-width"),
+//                text        : $this.attr("title"),
+//                annotationID: $this.attr("data-id")
+//            };
+//            if (a.annotationID == "new"){
+//                // new annotation
+//                Annotation.save(a.x, a.y, a.h, a.w, a.text, folio, projectID);
+//            } else {
+//                // update annotation
+//                Annotation.update(a.x, a.y, a.h, a.w, a.text, folio, projectID, a.annotationID);
+//            }
+//        });
+//    },
+//    /**
+//     *  Deletes annotation from interface and database.
+//     *  
+//     *  @param annotationID int unique id of annotation to be removed
+//     */
+//    remove: function(annotationID){
+//        if(!isMember && !permitAnnotation)return false;
+//        var params = new Array({name:"id",value:annotationID},{name:"delete",value:true});
+//        $.post('annotation', $.param(params), function(data){
+//            //deleted
+//        }, "html");      
+//    },
+//    /**
+//     *  Updates an existing annotation.
+//     *  
+//     *  @param x int left position of annotation
+//     *  @param y int top position of annotation
+//     *  @param h int height of annotation
+//     *  @param w int width of annotation
+//     *  @param text String attached plaintext data
+//     *  @param folio int unique id of folio
+//     *  @param projectID int unique id of project
+//     *  @param annotationID int uniqueid of updated annotation
+//     */
+//    update: function(x,y,h,w,text,folio,projectID,annotationID){
+//        if(!isMember && !permitAnnotation)return false;
+//        var params = new Array({name:"update",value:true});
+//        if (folio != undefined) params.push({name:"folio",value:folio});
+//        if (projectID != undefined) params.push({name:"projectID",value:projectID});
+//        if (text != undefined) params.push({name:"text",value:text});
+//        try {
+//            params.push({name:"id",value:annotationID},{name:"x",value:x},{name:"y",value:y},{name:"h",value:h},{name:"w",value:w});
+//        } catch (err){
+//            alert ("Failed to save: missing location value");
+//            return false;
+//        }
+//        $.post('annotation', $.param(params), function(data){
+//            $('[data-id]="'+annotationID+'"').removeClass('pendingSave');
+//        }, "html");
+//    },
+//    /**
+//     *  Handles changes to the options in the annotation tool.
+//     *  
+//     *  @param elem element clicked from .toolLinks
+//     */
+//    options: function(elem){
+//        if(!isMember && !permitAnnotation)return false;
+//        if ($(elem).hasClass("ui-state-active") && $(elem).is("#highlightAnnotation")){
+//            $("#defaultInst").show().siblings().hide();
+//            $(elem).removeClass("ui-state-active");
+//            $(".annotation").removeClass("newAnno adjustAnno deleteAnno showAnno");
+//            $("#defaultInst").show().siblings().hide();
+//        } else {
+//            $(elem).addClass("ui-state-active").siblings().removeClass("ui-state-active");
+//            $(".annotation").removeClass("newAnno adjustAnno deleteAnno showAnno").draggable('destroy').resizable('destroy');
+//            $("#"+$(elem).attr('id')+"Inst").show().siblings().hide();
+//            switch ($(elem).index()){
+//                case 0:     //#highlightAnnotation
+//                    $(".annotation").addClass('showAnno');
+//                    break;
+//                case 1:     //#addAnnotation
+//                    var newAnnotation = $("<div/>");
+//                    newAnnotation.addClass("annotation newAnno").css({
+//                        'width'     : "150px",
+//                        'height'    : "150px",
+//                        'top'       : $("#annotations").height()/2-75+"px",
+//                        'left'      : $("#annotations").width()/2-75+"px"
+//                    }).attr('title','').appendTo("#annotations");
+//                    $('.newAnno').draggable({
+//                        stop: function(event,ui){Annotation.adjust($(this),ui)},
+//                        containment: $("#annotations")
+//                    }).resizable({
+//                        stop: function(event,ui){Annotation.adjust($(this),ui)},
+//                        containment: $("#annotations"),
+//                        minHeight: 5,
+//                        minWidth: 5,
+//                        handles: 'all'
+//                    });
+//                    break;
+//            }
+//        }
+//    },
+//    /**
+//     *  Create and display annotations within the annotation tool.
+//     */
+//    display: function() {
+//        var allAnnos = $(".annotation");
+//        var ratio = $("#annotationDiv").height()/1000;
+//        allAnnos.each(function(){
+//            var a = $(this);
+//            a.css({
+//                'width'  :    a.attr('data-width')*ratio+"px",
+//                'height' :    a.attr('data-height')*ratio+"px",
+//                'left'   :    a.attr('data-x')*ratio+"px",
+//                'top'    :    a.attr('data-y')*ratio+"px",
+//                'display':'block'
+//            });
+//        });
+//        $("#defaultInst").show().siblings().hide();
+//    },
+//    /**
+//     *  Updates the annotation attributes in preparation for saving.
+//     *  
+//     *  @param $anno jQuery object, annotation updated
+//     *  @param ui object from jQuery resizable
+//     */
+//    adjust: function($anno,ui){
+//        if(!isMember && !permitAnnotation)return false;
+//        if ($anno.attr('data-id')==null) $anno.attr('data-id','new');
+//        var ratio = $("#annotations").height()/1000;
+//        if (ui.size != null){
+//             $anno.attr({
+//                'data-width'    : parseInt(ui.size.width/ratio),
+//                'data-height'   : parseInt(ui.size.height/ratio)
+//            });
+//        }
+//        $anno.attr({
+//            'data-x'        : parseInt(ui.position.left/ratio),
+//            'data-y'        : parseInt(ui.position.top/ratio)
+//        })
+//        .addClass('pendingSave');
+//    },
+//    /**
+//     *  Reveals the text and link of an annotation when hovering over the region.
+//     *  
+//     *  @param $a jQuery object, annotation
+//     */
+//    showText: function($a){
+//        $a.addClass('activeAnnotation');
+//        var annoText = $a.attr('title');
+//        var annoLink = $a.attr('linked');
+//        $("#annotationText").val(annoText);
+//        $("#annotationLink").val(annoLink);
+//    },
+//    /**
+//     *  Show link results
+//     *  
+//     */
+//    showLink: function(){
+//        if ($("#aLinkFrame").is(":visible")){
+//            $("#aLinkFrame").hide("fade",250, function(){$(this).remove();});
+//            $("#aShowLink").text("Preview Link");
+//        } else {
+//            var urlLink = $("#annotationLink").val();
+//            var iframe = $("<iframe id='aLinkFrame' src='"+urlLink+"'></iframe>");
+//            $("#annotations").append(iframe);
+//            $("#aShowLink").text("Hide Preview");
+//        }
+//    },
+//    /**
+//     *
+//     */
+//    validateLink: function(){
+//        var thisLink = $("#annotationLink");
+//        var urlLink = thisLink.val();
+//        var valid = /^(http|https|ftp)\:\/\/([a-zA-Z0-9\.\-]+(\:[a-zA-Z0-9\.&amp;%\$\-]+)*@)*((25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])|localhost|([a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(\:[0-9]+)*(\/($|[a-zA-Z0-9\.\,\?\'\\\+&amp;%\$#\=~_\-]+))*$/;
+//        if (!valid.test(urlLink)){
+//            thisLink.addClass("restricted").attr("title","This may not be a valid link");
+//        } else {
+//            thisLink.removeClass("restricted").attr("title","");
+//        }
+//    },
+//    /**
+//     *  Update links in annotation
+//     *  
+//     *  @param a element, annotation
+//     */
+//    updateLink: function(){
+//        if(!isMember && !permitAnnotation)return false;
+//        Annotation.validateLink();
+//        $('.activeAnnotation').attr('linked',$("#annotationLink").val()).addClass('pendingSave');
+//    },
+//    /**
+//     *  Update text of annotation
+//     *  
+//     *  @param a element, annotation
+//     */
+//    updateText: function(){
+//        if(!isMember && !permitAnnotation)return false;
+//        $('.activeAnnotation').attr('title',$("#annotationText").val()).addClass('pendingSave');
+//    }
+//};
 var Help = {
     /**
      *  Shows the help interface.
@@ -1771,7 +1914,8 @@ var History = {
         var pair = $(".transcriptlet[data-lineid='"+lineid+"']");
         pair.addClass("isUnsaved").find(".theText").val(historyText);
         pair.find(".notes").val(historyNotes);
-        Preview.updateCurrent();
+        Preview.updateLine(pair.find(".theText")[0]);
+        Preview.updateLine(pair.find(".notes")[0]);
     },
     /**
      *  Revert only the parsing value from the history entry.
@@ -1905,11 +2049,14 @@ var Linebreak = {
         //Load all text into the focused on line and clear it from all others
         var cfrm = confirm("This will insert the text at the current location and clear all the following lines for linebreaking.\n\nOkay to continue?");
         if (cfrm){
-            $("#"+currentFocus).val($("<div/>").html(leftovers).text()).focus()
-            .parent().addClass("isUnsaved").nextAll(".transcriptlet").addClass("isUnsaved").find(".theText").html("");
+// FIXME           $("#"+currentFocus).val($("<div/>").html(leftovers).text()).focus()
+            focusItem[1].find(".theText").val($("<div/>").html(leftovers).text()).focus()
+            .parent().addClass("isUnsaved")
+            .nextAll(".transcriptlet").addClass("isUnsaved")
+                .find(".theText").html("");
+            Data.saveTranscription();
+            Preview.updateLine(focusItem[1].find(".theText")[0]);
         }
-        Preview.updateCurrent();
-        Data.saveTranscription();
     },
     /**
      * Inserts uploaded linebreaking text beginning in the active textarea.
@@ -1922,18 +2069,18 @@ var Linebreak = {
         if (cfrm){
             $("#linebreakStringBtn").click();
             var bTlength = brokenText.length;
-            var thoseFollowing = $("#"+currentFocus).parent().nextAll(".transcriptlet").find(".theText");
-            $("#"+currentFocus).add(thoseFollowing).each(function(index){
+            var thoseFollowing = focusItem[1].nextAll(".transcriptlet").find(".theText");
+            focusItem[1].find('.theText').add(thoseFollowing).each(function(index){
                 if(index < bTlength){
                     if (index < bTlength-1 ) brokenText[index] += linebreakString;
                     $(this).val(unescape(brokenText[index])).parent(".transcriptlet").addClass("isUnsaved");
+                    Preview.updateLine(this);
                     if (index == thoseFollowing.length) {
                         leftovers = brokenText.slice(index+1).join(linebreakString);
                         $("#lbText").text(unescape(leftovers));
                     }
                 }
             });
-            Preview.updateCurrent();
             Data.saveTranscription();
         }
     },
@@ -1986,7 +2133,8 @@ var Linebreak = {
      */
     moveTextToNextBox: function() {
         if(!isMember && !permitModify)return false;
-        var myfield=document.getElementById(currentFocus);
+        var myfield = focusItem[1].find(".theText")[0];
+        focusItem[1].addClass("isUnsaved");       
         //IE support
         if (document.selection) {
             //FIXME this is not actual IE support
@@ -1996,30 +2144,28 @@ var Linebreak = {
         //MOZILLA/NETSCAPE support
         else if (myfield.selectionStart || myfield.selectionStart == '0') {
             var startPos = myfield.selectionStart;
+            if(focusItem[1].find(".nextLine").hasClass("ui-state-error") && myfield.value.substring(startPos).length > 0) {
             // if this is the last line, ask before proceeding
-            if($(myfield).parent(".transcriptlet").find(".nextLine").hasClass("ui-state-error") && myfield.value.substring(startPos).length > 0) {
                 var cfrm = confirm("You are on the last line of the page. T-PEN can save the remaining text in the linebreaking tool for later insertion. \n\nConfirm?");
                 if (cfrm) {
                     leftovers = myfield.value.substring(startPos);
                     $("#lbText").text(leftovers);
-                    $(myfield).val(function(index,value){return value.substring(0, startPos);});
+                    myfield.value=myfield.value.substring(0, startPos);
                     Linebreak.saveLeftovers(escape(leftovers));
                 } else {
                     return false;
                 }
             } else {
                 //prevent saving from changing focus until after values are changed
-                $(myfield).parent(".transcriptlet").removeClass("isUnsaved");
-                var nextfield=$(myfield).parent().next(".transcriptlet").find(".theText");
-                nextfield.val(myfield.value.substring(startPos)+nextfield.val()).focus();
+                var nextfield = focusItem[1].next(".transcriptlet").find(".theText")[0];
+                nextfield.value = myfield.value.substring(startPos)+nextfield.value;
+                Preview.updateLine(nextfield);
                 myfield.value = myfield.value.substring(0, startPos);
-                Interaction.newFocus(nextfield);
-                Interaction.selectFirst(nextfield);
-                nextfield.parent(".transcriptlet").addClass("isUnsaved");
+                Preview.updateLine(myfield);
+                $(nextfield).parent(".transcriptlet").addClass("isUnsaved");
+                focusItem[1].find(".nextLine").click();
             }
         }
-        $(myfield).parent(".transcriptlet").addClass("isUnsaved");
-        Preview.updateCurrent();
         Data.saveTranscription();
         return false;
     }
@@ -2035,7 +2181,8 @@ var Interaction = {
        $.ajax({
             url:"heartbeat",
             type:"POST",
-            success:Interaction.ping()
+            success:Interaction.ping(),
+            error:function(){}
         });
     },
     /**
@@ -2048,17 +2195,20 @@ var Interaction = {
      *  Alerts user if disruption will result in loss of ability to save edits.
      */
     forbiddenError: function(){
-        if ($("#forbidden").length == 0){
-            var ErrorNotice = "<div id='forbidden' class='ui-state-error' align=center valign=middle>\n\
-                    A recent server request failed because this session has timed out. Please log in again to resume working.<br/>\n\
-                <span>Some work on the current, unsaved line may have been lost. Check your work carefully after logging in.</span>\n\
-                <br/><br/>\n\
-                <form id='login' action='login.jsp' method='POST'>\n\
-                <label for='uname'>Email</label><input class='text' type='text' name='uname'>\n\
-                <label for='password'>Password</label><input class='text' type='password' name='password'>\n\
-                <input type='hidden' name='ref' value='http://t-pen.org/TPENFRESH/login.jsp'>\n\
-                <input class='ui-state-default ui-button ui-corner-all' type='submit' title='Log In' value='Log In'>\n\
-                </form></div>";
+        if ($("#urgentError").length == 0){
+            var ErrorNotice = ["<div id='urgentError'><p id='errorMessage'>",
+                "This sessions has timed out due to inactivity or a server reset. ",
+                "Please log in again to resume working.<br/>",
+                "<span>Some work on the current, unsaved line may have been lost. ",
+                "Check your work carefully after logging in.</span><br/>",
+                "<form id='login' action='login.jsp' method='POST'>",
+                "<label for='uname'>Email</label><input class='text' type='text' name='uname'>",
+                "<label for='password'>Password</label><input class='text' type='password' name='password'>",
+                "<input type='hidden' name='ref' value='http://t-pen.org/TPEN/login.jsp'>",
+                "<input class='ui-state-default ui-button ui-corner-all' type='submit' title='Log In' value='Log In'>",
+                "</form></p>",
+                "<a href='index.jsp'>T&#8209;PEN Home</a></div>",
+                "<div id='trexHead'></div>"].join('');
             $("body").append(ErrorNotice);
         }
     },
@@ -2091,11 +2241,11 @@ var Interaction = {
     /**
      * Places cursor at the beginning of textarea.
      * 
-     * @param myField element to place cursor within
+     * @deprecated Use setCursorPosition(e,0)
+     * @param e element textarea to place cursor within
      */
-     selectFirst: function(myField) {
-        myField.selectionStart=0;
-        myField.selectionEnd=0;
+     selectFirst: function(e) {
+        this.setCursorPosition(e, 0);
     },
     /**
      * Handles key events in textareas.
@@ -2138,12 +2288,13 @@ var Interaction = {
         }
     },
     /**
+     * @deprecated As of 2.0, prefer focusItem[0]
      * Updates currentFocus with current textarea.
      * 
      * @param element active transcription textarea
      */
      newFocus: function(element) {
-        currentFocus=$(element).attr("id");
+//        currentFocus=$(element).attr("id");
     },
     /**
      * Adds closing tag button to textarea.
@@ -2152,7 +2303,6 @@ var Interaction = {
      * @param fullTag title of tag for display in button
      */
      closeTag: function(tagName,fullTag){
-        if(e!=null){
             // Do not create for self-closing tags
             if (tagName.lastIndexOf("/") == (tagName.length-1)) return false;
             var tagLineID = focusItem[1].attr("data-lineid");
@@ -2168,16 +2318,15 @@ var Interaction = {
                 tagID = data;
                 $(closeTag).attr({
                     "class"     :   "tags ui-corner-all right ui-state-error",
-                    "title"     :   fullTag,
+                    "title"     :   unescape(fullTag),
                     "data-line" :   tagLineID,
                     "data-folio":   folio,
                     "data-tagID":   tagID
                 }).text("/"+tagName);
-                $(e).parent().children(".xmlClosingTags").append(closeTag);
+                focusItem[1].children(".xmlClosingTags").append(closeTag);
             });
         //orderTags()
         //FIXME: tags not in the right order, just the order they are added 
-        }
     },
     /**
      * Removes tag from screen and database without inserting.
@@ -2262,15 +2411,16 @@ var Interaction = {
      * 
      * @param theChar value to insert
      */
-     addchar: function(theChar)
+     addchar: function(theChar, closingTag)
     {
         if(!isMember && !permitModify)return false;
-        e=document.getElementById(currentFocus);
-        if(e!=null)
-        {
+        var closeTag = (closingTag == undefined) ? "" : closingTag;
+        var e = focusItem[1].find('.theText')[0];
+        if(e!=null) {
             Data.makeUnsaved();
-            this.setCursorPosition(e,this.insertAtCursor(e,theChar));
+            return this.setCursorPosition(e,this.insertAtCursor(e,theChar,closeTag));
         }
+        return false;
     },
     /**
      *  Insert tag string from XML Button into the transcription textarea.
@@ -2284,8 +2434,11 @@ var Interaction = {
             var slashIndex = tagName.length;
             fullTag = fullTag.slice(0,slashIndex)+fullTag.slice(slashIndex+1,-1)+" />";
         }
-        this.addchar(fullTag);
-        this.closeTag(tagName, fullTag);
+        // Check for wrapped tag
+        if (!this.addchar(escape(fullTag),escape(tagName))) {
+            this.closeTag(escape(tagName), escape(fullTag));
+        }
+        
     },
     /**
      * Inserts value at cursor location.
@@ -2294,47 +2447,74 @@ var Interaction = {
      * @param myValue value to insert
      * @return int end of inserted value position
      */
-     insertAtCursor: function(myField, myValue) {
+     insertAtCursor: function(myField, myValue, closingTag) {
+        var closeTag = (closingTag == undefined) ? "" : unescape(closingTag);
         //IE support
         if (document.selection) {
             myField.focus();
             sel = document.selection.createRange();
-            sel.text = myValue;
-            return sel+myValue.length;
+            sel.text = unescape(myValue);
+            Preview.updateLine(myField);
+            return sel+unescape(myValue).length;
         }
         //MOZILLA/NETSCAPE support
         else if (myField.selectionStart || myField.selectionStart == '0') {
             var startPos = myField.selectionStart;
             var endPos = myField.selectionEnd;
-            myField.value = myField.value.substring(0, startPos)
-            + myValue
-            + myField.value.substring(endPos, myField.value.length);
-            return endPos+myValue.length;
+            if (startPos != endPos) {
+                // something is selected, wrap it instead
+                var toWrap = myField.value.substring(startPos,endPos);
+                myField.value = myField.value.substring(0, startPos)
+                    + unescape(myValue)
+                    + toWrap
+                    + "</" + closeTag +">"
+                    + myField.value.substring(endPos, myField.value.length);
+                myField.focus();
+                Preview.updateLine(myField);
+                var insertLength = startPos + unescape(myValue).length +
+                    toWrap.length + 3 + closeTag.length;
+                return "wrapped" + insertLength;              
+            } else {
+                myField.value = myField.value.substring(0, startPos)
+                    + unescape(myValue)
+                    + myField.value.substring(startPos, myField.value.length);
+                myField.focus();
+                Preview.updateLine(myField);
+                return startPos+unescape(myValue).length;
+            }
         } else {
-            myField.value += myValue;
+            myField.value += unescape(myValue);
+            myField.focus();
+            Preview.updateLine(myField);
             return myField.length;
         }
     },
     /**
      * Sets cursor position in form element.
      * 
-     * @param e selection event
-     * @param pos position for cursor
+     * @param e element
+     * @param position position for cursor
      */
-     setCursorPosition: function(e, pos)
+     setCursorPosition: function(e, position)
     {
-            if(e.setSelectionRange)
-            {
-                    e.focus();
-                    e.setSelectionRange(pos,pos);
-            }
-            else if (e.createTextRange) {
-                    var range = e.createTextRange();
-                    range.collapse(true);
-                    range.moveEnd('character', pos);
-                    range.moveStart('character', pos);
-                    range.select();
-            }
+        var pos = position;
+        var wrapped = false;
+        if (pos.toString().indexOf("wrapped") == 0) {
+            pos = parseInt(pos.substr(7));
+            wrapped = true;
+        }
+        e.focus();
+        if(e.setSelectionRange) {
+            e.setSelectionRange(pos,pos);
+        }
+        else if (e.createTextRange) {
+            e = e.createTextRange();
+            e.collapse(true);
+            e.moveEnd('character', pos);
+            e.moveStart('character', pos);
+            e.select();
+        }
+        return wrapped;
     },
     /**
      * Navigates to selected page in project.
@@ -2343,13 +2523,21 @@ var Interaction = {
      */
      navigateTo: function(dropdown) {
         if (isUnsaved()){
-            var exit = confirm("Some changes to this page have not been saved. If you continue, you will lose any unsaved data.");
-            if (!exit) {
-                $(".isUnsaved").removeClass("isUnsaved");
-                return false;
-            }
+            $("body").ajaxStart(function(){
+                $(this).addClass("ui-state-disabled");
+            }).ajaxStop(function(){
+                document.location='?p='+dropdown.value+'&tool='+liveTool;
+            });
+//            Annotation.autoSave();
+            Data.saveTranscription();
+//            var exit = confirm("Some changes to this page have not been saved. If you continue, you will lose any unsaved data.");
+//            if (!exit) {
+//                $(".isUnsaved").removeClass("isUnsaved");
+//                return false;
+//            }
+        } else {
+            document.location='?p='+dropdown.value;
         }
-        document.location='?p='+dropdown.value;
     },
     /** 
      * Divides the screen and displays a tool on the right.
@@ -2373,10 +2561,12 @@ var Interaction = {
         $("#wrapper").css({
             "width" :   (PAGEWIDTH-width)/PAGEWIDTH*100+"%",
             "padding-right" : "16px"
-        }).one("webkitTransitionEnd transitionend oTransitionEnd",function(){
+//FIXME this is disabled as the transitions have been pulled
+//                }).one("webkitTransitionEnd transitionend oTransitionEnd",function(){
             // Assure a clean transition
-            Screen.updatePresentation(focusItem[1]);
+//            Screen.updatePresentation(focusItem[1]);
         });
+        Screen.updatePresentation(focusItem[1]);
     },
     /** 
      * Restores interface after shift key is released.
@@ -2393,7 +2583,7 @@ var Interaction = {
      * Requires shift key to be held down.
      */
      moveWorkspace: function(event){
-         $("#imgTop,#imgBottom,#imgBottom img").addClass('noTransition');
+        $("#imgTop,#imgBottom,#imgBottom img").addClass('noTransition');
         var startImgTop = $("#imgTop").height();
         var startImgBottom = $("#imgBottom img").position().top;
         var startImgBottomH = $("#imgBottom").height();
@@ -2599,20 +2789,27 @@ var Interaction = {
      * @return complete div for addition to DOM
      */
      makeOverlayDiv: function(thisLine,originalX){
-        var lY = parseInt(thisLine.find(".lineTop").val());
-        var lX = parseInt(thisLine.find(".lineLeft").val());
-        var lH = parseInt(thisLine.find(".lineHeight").val());
-        var lW = parseInt(thisLine.find(".lineWidth").val());
+        var Y = parseInt(thisLine.find(".lineTop").val());
+        var X = parseInt(thisLine.find(".lineLeft").val());
+        var H = parseInt(thisLine.find(".lineHeight").val());
+        var W = parseInt(thisLine.find(".lineWidth").val());
+        var oH = ($.browser.opera) ?
+            [-1/$("#imgTopImg")[0].width,2/$("#imgTopImg")[0].height] : 
+            [0,0]; //opera hack
+        var newY = Page.convertPercent(Y/1000+oH[0],2);
+        var newX = Page.convertPercent(X/originalX+oH[0],2);
+        var newH = Page.convertPercent(H/1000+oH[1],2);
+        var newW = Page.convertPercent(W/originalX+oH[1],2);
         var lineOverlay = ["\n<div class='line' style='",
-        "top:",   Page.convertPercent(lY/1000,2),
-        "; left:",  Page.convertPercent(lX/originalX,2),
-        "; height:",Page.convertPercent(lH/1000,2),
-        "; width:", Page.convertPercent(lW/originalX,2),
-        ";' data-lineid='",thisLine.attr("data-lineid"),"'",
-        " linetop='",   lY,"'",
-        " lineleft='",  lX,"'",
-        " lineheight='",lH,"'",
-        " linewidth='", lW,"'>",
+        "top:",   newY,
+        "%; left:",  newX,
+        "%; height:",newH,
+        "%; width:", newW,
+        "%;' data-lineid='",thisLine.attr("data-lineid"),"'",
+        " linetop='",   Y,"'",
+        " lineleft='",  X,"'",
+        " lineheight='",H,"'",
+        " linewidth='", W,"'>",
         "</div>"];
         return lineOverlay.join("");
     },
@@ -2626,7 +2823,6 @@ var Interaction = {
         $(".line,.parsing,.adjustable,.parsingColumn").remove(); //clear and old lines to put in updated ones
         var originalX = imgToParse[0].width/imgToParse[0].height*1000;
         var setOfLines = [];
-        var offsetX =
         $(".transcriptlet").each(function(index){
             setOfLines[index] = Interaction.makeOverlayDiv($(this),originalX);
         });
@@ -2695,25 +2891,27 @@ var Data = {
         // insert images once loaded
         $(msImage).load(this.loadPage);
         // preload the image file
-        msImage.src=imgURL;
+        if(typeof imgURL !== "undefined")
+            msImage.src=imgURL;
     },
     /**
      * Reveals screen after loading image.
      */
     loadPage: function() {
-        $(".preloadImage").attr("src",imgURL);
+        if(typeof imgURL !== "undefined")
+            $(".preloadImage").attr("src",imgURL);
         $("#imgTop").find("p").remove();
         //wait to reveal page
         $("#transcriptionPage").css("visibility","visible");
         $("#parsingLoader").fadeOut(250);
-        ratio = $("#imgTopImg")[0].width / $("#imgTopImg")[0].height;
+        imgRatio = $("#imgTopImg")[0].width / $("#imgTopImg")[0].height;
         //build out page relationships
         Parsing.setLineNavBtns();
         focusOnLastEntry();
         //if there is no transcription data on the page, confirm the automatic parsing first
         if(isBlank){
             $("#parsingBtn").click();
-            $("#backToTranscribing").stop(true,true).show("pulsate",250,function(){$(this).siblings().removeClass("ui-state-disabled");}).siblings().addClass("ui-state-disabled");        
+            $("#backToTranscribing").stop(true,true).show("scale",250,function(){$(this).siblings().removeClass("ui-state-disabled");}).siblings().addClass("ui-state-disabled");        
         }
         $.get("tagTracker",{
             listTags    : true,
@@ -2747,10 +2945,12 @@ var Data = {
         }
         msPrevImage = new Image();
         msNextImage = new Image();
-        msPrevImage.src=prevURL;       // load previous and next page images into the browser cache
-        msNextImage.src=nextURL;
+        if(typeof prevURL !== "undefined")
+            msPrevImage.src=prevURL;       // load previous and next page images into the browser cache
+        if(typeof nextURL !== "undefined")
+            msNextImage.src=nextURL;
         $("#abbrevImg").attr({
-            "src" : "http://67.23.4.192/images/cappelli/Scan0064.jpg",
+            "src" : "//t-pen.org/images/cappelli/Scan0064.jpg",
             "width": "auto"
         });
         abbrevLabelsAll = $("#abbrevLabels").clone();
@@ -2833,7 +3033,7 @@ var Data = {
                 .prepend("<div class='noChange'>No changes made</div>")//+", "+Data.dateFormat(date.getDate())+" "+month[date.getMonth()]+" "+date.getFullYear())
                 .animate({"color":"#618797"}, 1600,function(){$("#saveReport").find(".noChange").remove();});
         }
-        Annotation.autoSave();
+//        Annotation.autoSave();
     },
     /**
      * Checks for successful saving of transcription data.
@@ -2883,6 +3083,7 @@ $(function() {
     });
     $('.counter').addClass('ui-corner-all ui-state-active ui-button');
     $('.nextLine, .addNotes, .previousLine').addClass('ui-corner-all ui-state-default ui-button');
+    $(".showMe").append("<span class='ui-icon ui-icon-carat-1-s'>more</span>");
     // toolbar formatting
     $('#msOptions,#navOptions,#projectOptions,#siteNavigation,.toolLinks')
         .children('a,input,button').addClass('ui-state-default ui-button')
@@ -2946,7 +3147,12 @@ $(function() {
                             Parsing.lineChange(this,event);
                         }
                     }
-    },".parsing");
+    },".parsing")
+    .on({
+        mouseenter: function(){
+                        $(this).fadeOut()
+                    }
+    },"#savedChanges,#progress,#lineResizing,.btnTitle");
     $('#annotationSplit').on({
         click:  function(){
             var annoID = $(".activeAnnotation").attr('data-id')
@@ -2963,6 +3169,10 @@ $(function() {
     }, '#deleteAnnotation')
     .on({
         mouseenter: function () {
+            $("#aLinkFrame").hide("fade",250, function(){
+                $(this).remove();
+                $("#aShowLink").text("Preview Link");
+            });
             $(".annotation").addClass('adjustAnno');
             $('.annotation').draggable({
                 stop: function(event,ui){Annotation.adjust($(this),ui)},
@@ -2983,12 +3193,13 @@ $(function() {
             var anno = $(this);
             if (anno.hasClass("activeAnnotation")){
                 Annotation.updateText();
+                Annotation.updateLink();
                 $(".activeAnnotation").removeClass("activeAnnotation");
                 panel.fadeOut()
             } else {
                 $(".activeAnnotation").removeClass("activeAnnotation");
                 anno.addClass("activeAnnotation");
-                panel.show()
+                panel.show();
                 Annotation.showText(anno);
                 panel.removeClass("topAdjust");
                 if (anno.position().top + anno.height() > $("#annotations").height() - panel.height()) {
@@ -2997,7 +3208,8 @@ $(function() {
             }
         }
     }, '.annotation');
-    $('#entry').on('focusin','.transcriptlet',function(){
+    $('#entry')
+    .on('focusin','.transcriptlet',function(){
         if (!isZoomed) {
             Screen.updatePresentation($(this));
         } else {
@@ -3015,17 +3227,17 @@ $(function() {
     })
     .on('keyup',".theText,.notes",function(event){
         if (!event) event = window.event;
-        if (event.which > 45 || event.which == 8) {
-            var lineid = $(this).parent(".transcriptlet").attr("data-lineid");
-            var previewText = ($(this).hasClass("theText")) ? ".previewText" : ".previewNotes";
-            $(".previewLineNumber[data-lineid='"+lineid+"']").siblings(previewText).text($(this).val());
-            Data.makeUnsaved();
+        if (event.which > 45 || event.which == 8 || event.which == 32) {
+            Preview.updateLine(this);
         }
     })
     .on('focus',".theText,.notes",function(event){
         var textVar = this;
         textVar.style.height = 0;
         this.style.height = textVar.scrollHeight + "px";
+    })
+    .on('click','.addNotes',function(){
+        Screen.notesToggle($(this).parent('.transcriptlet'));
     })
     .on({
         click: function(event){
@@ -3052,7 +3264,7 @@ $(function() {
         }
     },".tags");   
     $(".exitPage").click(function(event){
-        Annotation.autoSave();
+//        Annotation.autoSave();
         if(isUnsaved()) {
             event.preventDefault();
             var thisLink = $(this).attr("href");
@@ -3206,14 +3418,14 @@ $(function() {
                     }
                     //console.log("mouseup");
                     var $newCol = $("#newCol");
-                    var imgRatio = $("#imgTopImg").height() / 1000;
+                    var colRatio = $("#imgTopImg").height() / 1000;
                     $newCol.attr({
                         "data-lineid"   : "-1",
                         "newline"       : true,
-                        "linetop"       : parseInt($newCol.css("top")) / imgRatio,
-                        "lineleft"      : parseInt($newCol.css("left")) / imgRatio,
-                        "linewidth"     : parseInt($newCol.css("width")) / imgRatio,
-                        "lineheight"    : parseInt($newCol.css("height")) / imgRatio,
+                        "linetop"       : parseInt($newCol.css("top")) / colRatio,
+                        "lineleft"      : parseInt($newCol.css("left")) / colRatio,
+                        "linewidth"     : parseInt($newCol.css("width")) / colRatio,
+                        "lineheight"    : parseInt($newCol.css("height")) / colRatio,
                         "id"            : "",
                         "hastranscription": false
                     });
@@ -3346,7 +3558,36 @@ $(function() {
                 History.showNotes(button);
         }
     });
-    $("#previewDiv").on("click",".previewText,.previewNotes",function(){Preview.edit(this);});
+    $("#previewSplit")
+        .on("click",".previewText,.previewNotes",function(){Preview.edit(this);})
+        .on("click","#previewNotes",function(){
+            if($(this).hasClass("ui-state-active")){
+                $(".previewNotes").hide();
+                $("#previewNotes")
+                    .text("Show Notes")
+                    .removeClass("ui-state-active");
+            } else {
+                $(".previewNotes").show();
+                $("#previewNotes")
+                    .text("Hide Notes")
+                    .addClass("ui-state-active");
+            }
+            Preview.scrollToCurrentPage();
+        })
+        .on("click","#previewAnnotations",function(){
+            if($(this).hasClass("ui-state-active")){
+                $(".previewAnnotations").empty();
+                $("#previewAnnotations")
+                    .text("Show Annotations")
+                    .removeClass("ui-state-active");
+            } else {
+                sciatCanvas.listAnnotationsInPreview();
+                $("#previewAnnotations")
+                    .text("Hide Annotations")
+                    .addClass("ui-state-active");
+            }
+            Preview.scrollToCurrentPage();
+        });
     $(".magnifyBtn").click(function(event){
         if ($(this).hasClass("ui-state-active")){
             $('#zoomDiv').fadeOut();
@@ -3365,7 +3606,7 @@ $(function() {
             if(event.ctrlKey || event.metaKey){
                 $("#bookmark,#location,#savedChanges,#zoomDiv").delay(750).hide("fade",250);
                 $(".line").delay(750).animate({"opacity":.3},250);
-                $(".annotation").addClass("showAnno");
+//                $(".annotation").addClass("showAnno");
                 if (event.which == 36||event.which == 103) {
                         $("#transcription1").focus();
                 }
@@ -3418,7 +3659,7 @@ $(function() {
             if(!event.ctrlKey || !event.metaKey){
                 $("#bookmark,#location").stop(true,true).show("fade",500);
                 $(".line").stop(true,true).css("opacity","");
-                $(".annotation").removeClass("showAnno");
+//                $(".annotation").removeClass("showAnno");
                 if (isZoomed){
                     Interaction.zoomBookmark(isZoomed)
                 }
@@ -3438,7 +3679,6 @@ $(function() {
                     break;
             }
         });
-    $("#savedChanges,#progress,#lineResizing").on("mouseenter",function(){$(this).fadeOut()});
     $("#historyListing").on({
         mouseenter: function(){
             History.adjustBookmark($(this));
@@ -3481,7 +3721,9 @@ $(function() {
             if (liveTool != "none") {
                 var activate = (liveTool.indexOf("frameBtn") == 0) ? "split"+liveTool.substring(8) : liveTool+"Split";
                 Interaction.splitScreen(activate,(Page.width()-ui.size.width));
-                $("#tools").css("overflow","auto").find("img").height("auto").width("100%");
+                $("#tools")
+//                    .css("overflow","auto")
+                    .find("img").height("auto").width("100%");
                 $("#wrapper").height("100%");
             }
         }
@@ -3511,7 +3753,7 @@ $(function() {
         $("#abbrevLabels").change();
     });
     $("#abbrevLabels").change(function(){
-        $("#abbrevImg").attr("src","http://67.23.4.192/images/cappelli/"+$(this).val());
+        $("#abbrevImg").attr("src","//t-pen.org/images/cappelli/"+$(this).val());
     });
     $("#abbrevBtn").click(function(){
         //confirm image is loaded
@@ -3552,24 +3794,24 @@ $(function() {
         Interaction.writeLines($("#fullImg"));
         return false;
     });
-    $("#annotationBtn").click(function(){
-        liveTool = "annotation";
-        Interaction.activateToolBtn(this);
-        if(isFullscreen)isUnadjusted = true;
-        isFullscreen = false;
-        $(".annotation").hide();
-        $("#annotationDiv").height(Page.height()-22).width("auto");
-        var toolWidth = $("#annotationDiv")[0].width / $("#annotationDiv")[0].height * (Page.height() - 22);
-        var limit = Screen.limit(toolWidth);
-        if (limit != toolWidth){
-            $("#annotationDiv").height('auto').width('100%');
-            toolWidth = limit;
-        }
-        //$("#annotationSplit").width(toolWidth);
-        Interaction.splitScreen("annotationSplit",toolWidth);
-        Annotation.display();
-        return false;
-    });
+//    $("#annotationBtn").click(function(){
+//        liveTool = "annotation";
+//        Interaction.activateToolBtn(this);
+//        if(isFullscreen)isUnadjusted = true;
+//        isFullscreen = false;
+//        $(".annotation").hide();
+//        $("#annotationDiv").height(Page.height()-22).width("auto");
+//        var toolWidth = $("#annotationDiv")[0].width / $("#annotationDiv")[0].height * (Page.height() - 22);
+//        var limit = Screen.limit(toolWidth);
+//        if (limit != toolWidth){
+//            $("#annotationDiv").height('auto').width('100%');
+//            toolWidth = limit;
+//        }
+//        //$("#annotationSplit").width(toolWidth);
+//        Interaction.splitScreen("annotationSplit",toolWidth);
+//        Annotation.display();
+//        return false;
+//    });
     $("#paleographyBtn").click(function(){
         if ($(this).attr('isready') == "true"){
             window.open('paleo.jsp?'+location.href.match(/\jsp\?(.*)/)[1]);          
@@ -3608,6 +3850,19 @@ $(function() {
         $("#historyBookmark").empty();
         History.showLine(focusItem[1].attr("data-lineid"));
     });
+    $("#sciatBtn").click(function(){
+        liveTool = "sciat";
+        Interaction.activateToolBtn(this);
+        if(isFullscreen)isUnadjusted = true;
+        isFullscreen = false;
+        var toolWidth = Page.width()*.5;
+        Interaction.splitScreen("sciatSplit",toolWidth);
+        $('#newCanvas').val(folio);
+        if ($("#annotationTool")[0].src.indexOf("svg-editor") == -1) {
+            $("#goCanvas").click();
+        }
+        return false;
+    });
     $("#parsingBtn").click(function(){
         liveTool = "parsing";
         Interaction.activateToolBtn(this);
@@ -3645,11 +3900,12 @@ $(function() {
         Preview.format();
         if(isFullscreen)isUnadjusted = true;
         isFullscreen = false;
+        $("#previewDiv").height(Page.height()-22);        
         Interaction.splitScreen("previewSplit", 600);
         // Scroll to current page after transition
-        window.setTimeout(function(){document.location.href="#currentPage";}, 1000);
+        window.setTimeout(Preview.scrollToCurrentPage, 800);
     });
-    $("#annotationSplit").find(".toolLinks").find("a").click(function(){Annotation.options(this)});
+//    $("#annotationSplit").find(".toolLinks").find("a").click(function(){Annotation.options(this)});
     $("#saveBtn").addClass("ui-state-disabled").click(function(){alert("Due to debugging, only autosaving is available at this time.");});
     $("#bookmark").resizable({
         disabled    :true,
@@ -3747,17 +4003,17 @@ $(function() {
 function focusOnLastEntry(){
     var lastEntry = ($("#"+currentFocus).is("textarea")) ? currentFocus : "transcription1";
     if (lastEntry != currentFocus){
-            $(".theText").each(function(index){
-                if ($(this).val().length > 0) {
-                    lastEntry = "transcription"+(index+1);
-                    isBlank = false;
-                }
-            });
-            // Do not go to the last entry if it is the end of the page
-            if (lastEntry == $(".theText").eq(-1).attr("id")) lastEntry = "transcription1";
+        $(".theText").each(function(index){
+            if ($(this).val().length > 0) {
+                lastEntry = "transcription"+(index+1);
+                isBlank = false;
+            }
+        });
+        // Do not go to the last entry if it is the end of the page
+        if (lastEntry == $(".theText").eq(-1).attr("id")) lastEntry = "transcription1";
     }
-    focusItem[0] = focusItem[1] = $("#"+lastEntry).parent(".transcriptlet");
-    $("#"+lastEntry).focus();
+    focusItem[1] = $("#"+lastEntry).parent(".transcriptlet");
+    Screen.updatePresentation(focusItem[1]);
 }
 $(window)
 .resize(function(){

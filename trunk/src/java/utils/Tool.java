@@ -27,7 +27,7 @@ public class Tool {
 
     public enum tools {
 
-        preview, compare, parsing, abbreviation, history, linebreak, annotation,paleography
+        preview, compare, parsing, abbreviation, history, linebreak, annotation,paleography,sciat
     };
     private tools toolName;
 
