@@ -1,7 +1,8 @@
 T-PEN.org Backend
 =================
 This fork is by [Thom Hastings](http://turing.slu.edu/~hastint/) to integrate
-+ [Tesseract-OCR](http://code.google.com/p/tesseract-ocr/) for _Optical Character Recognition_
++ [Tesseract-OCR](http://code.google.com/p/tesseract-ocr/) for _Optical Character Recognition_  
+and
 + [Moses-SMT](http://www.statmt.org/moses/) for _Statistical Machine Translation_  
 into the existing framework.
 
