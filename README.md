@@ -2,12 +2,9 @@ T-PEN.org Backend
 =================
 This fork is by [Thom Hastings](http://turing.slu.edu/~hastint/) to integrate
 + [Tesseract-OCR](http://code.google.com/p/tesseract-ocr/) for _Optical Character Recognition_  
-and
+via [git svn](http://git-scm.com/docs/git-svn) and
 + [Moses-SMT](http://www.statmt.org/moses/) for _Statistical Machine Translation_  
-into the existing framework.
-
-The Tesseract integration is handled via [git svn](http://git-scm.com/docs/git-svn).
-The Moses integration is handled via [git](https://github.com/moses-smt/mosesdecoder).
+via [github](https://github.com/moses-smt/mosesdecoder) into the existing framework.
 
 Automatic training of Tesseract is done like [this](http://isbullsh.it/2012/06/Automatic-tesseract-training/) with [TesseractTrainer](https://github.com/BaltoRouberol/TesseractTrainer).
 
