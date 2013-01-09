@@ -8,7 +8,7 @@ into the existing framework.
 The Tesseract integration is handled via [git svn](http://git-scm.com/docs/git-svn).
 The Moses integration is handled via [git](https://github.com/moses-smt/mosesdecoder).
 
-Automatic training of Tesseract is done like [this](http://isbullsh.it/2012/06/Automatic-tesseract-training/).
+Automatic training of Tesseract is done like [this](http://isbullsh.it/2012/06/Automatic-tesseract-training/) with [TesseractTrainer](https://github.com/BaltoRouberol/TesseractTrainer).
 
 Furthermore, [MATLAB](http://www.mathworks.com/products/matlab/) hooks might be used for handwriting analysis.
 
