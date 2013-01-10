@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+# ocrfix.pl
+# by Kevin Scannell
+# GPLv3+
 
 use strict;
 use warnings;
