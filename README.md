@@ -4,7 +4,7 @@ This fork is by [Thom Hastings](http://turing.slu.edu/~hastint/) to integrate
 + [Tesseract-OCR](http://code.google.com/p/tesseract-ocr/) for _Optical Character Recognition_  
 via [git svn](http://git-scm.com/docs/git-svn) and
 + [Moses-SMT](http://www.statmt.org/moses/) for _Statistical Machine Translation_  
-via [github](https://github.com/moses-smt/mosesdecoder) into the existing framework.
+via [github](https://github.com/moses-smt/mosesdecoder) into the existing [T-PEN](http://t-pen.org) framework.
 
 Automatic training of Tesseract is done like [this](http://isbullsh.it/2012/06/Automatic-tesseract-training/) with [TesseractTrainer](https://github.com/BaltoRouberol/TesseractTrainer).
 
