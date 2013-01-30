@@ -7,6 +7,7 @@ via [git svn](http://git-scm.com/docs/git-svn) and
 via [github](https://github.com/moses-smt/mosesdecoder) into the existing [T-PEN](http://t-pen.org) framework.
 
 Automatic training of Tesseract is done like [this](http://isbullsh.it/2012/06/Automatic-tesseract-training/) with [TesseractTrainer](https://github.com/BaltoRouberol/TesseractTrainer).
+I'm trying to tie in Tesseract's SVN codebase as a git submodule like [this](http://fredericiana.com/2010/01/12/using-svn-repositories-as-git-submodules/).
 
 Furthermore, [MATLAB](http://www.mathworks.com/products/matlab/) hooks might be used for handwriting analysis.
 
