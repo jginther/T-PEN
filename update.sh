@@ -1,17 +1,32 @@
 #!/bin/sh
 echo "Updating..."
 echo
-cd mosesdecoder
 echo "Moses-SMT:"
-git pull
-cd ..
-cd tesseract-ocr
+if [ ! -e mosesdecoder ]
+then
+    git submodule add git://github.com/moses-smt/mosesdecoder.git
+else
+    cd mosesdecoder
+    git pull git://github.com/moses-smt/mosesdecoder.git master
+    cd ..
+fi
 echo "Tesseract-OCR:"
-git svn rebase
-cd ..
-cd TesseractTrainer
+if [ ! -e tesseract-ocr ]
+then
+    git svn clone http://tesseract-ocr.googlecode.com/svn tesseract-ocr
+else
+    cd tesseract-ocr
+    git svn rebase
+    cd ..
+fi
 echo "TesseractTrainer:"
-git pull
-cd ..
+if [ ! -e TesseractTrainer ]
+then
+    git submodule add git://github.com/BaltoRouberol/TesseractTrainer.git
+else
+    cd TesseractTrainer
+    git pull git://github.com/BaltoRouberol/TesseractTrainer.git master
+    cd ..
+fi
 echo
 echo "DONE"
