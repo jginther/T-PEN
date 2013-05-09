@@ -4,3 +4,9 @@
 [submodule "mosesdecoder"]
 	path = mosesdecoder
 	url = git://github.com/moses-smt/mosesdecoder.git
+[submodule "tesseract-trainer"]
+	path = tesseract-trainer
+	url = git://github.com/BaltoRouberol/TesseractTrainer.git
+[submodule "moses-smt"]
+	path = moses-smt
+	url = git://github.com/moses-smt/mosesdecoder.git
