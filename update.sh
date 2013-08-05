@@ -19,8 +19,8 @@ echo "-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-"
 echo "Welcome to the T-PEN.org backend Update Script"
 echo "-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-"
 echo
-echo "_(¡) Updating Components!"
-echo 
+echo "_(¡) Updating Components!:…"
+echo "…"
 echo "+(1) Statistical Machine Translation ...… Moses-SMT:…"
 if [ ! -e moses-smt ]
 then
@@ -32,7 +32,7 @@ else
     git pull git://github.com/moses-smt/mosesdecoder.git master
     cd ..
 fi
-echo
+echo "…"
 echo "+(2) Optical Character Recognition ...… Tesseract-OCR:…"
 if [ ! -e tesseract-ocr ]
 then
@@ -44,7 +44,7 @@ else
     git svn rebase
     cd ..
 fi
-echo
+echo "…"
 echo "=(3) Toolset for training Tesseract data ...… TesseractTrainer:…"
 if [ ! -e tesseract-trainer ]
 then
@@ -56,7 +56,7 @@ else
     git pull git://github.com/BaltoRouberol/TesseractTrainer.git master
     cd ..
 fi
-echo
+echo "…"
 echo "-(4) Example data (courtesy of Kevin Scannell) ...… Tesseract-GLE-Unical:…"
 if [ ! -e tesseract-gle-unical ]
 then
@@ -68,7 +68,7 @@ else
     git svn rebase
     cd ..
 fi
-echo
+echo "…"
 git commit -a -m "ran update.sh"
 echo "_(¡) DONE with update script..."
 echo
