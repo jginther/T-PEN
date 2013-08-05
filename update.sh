@@ -78,7 +78,7 @@ echo "~{¿} Do you want to git push?"
 echo "This saves the updated code (to github.com)"
 echo " [y/N]: "
 read $INPUT
-if [ $INPUT == [ "Y" || "y" ] ]
+if [ $INPUT = ["Y"||"y"] ]
 then
     git push origin master -u
 fi
