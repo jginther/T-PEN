@@ -68,17 +68,19 @@ else
     git svn rebase
     cd ..
 fi
-echo "…"
+echo
+echo "_(¡) commiting changes!"
 git commit -a -m "ran update.sh"
-echo "_(¡) DONE with update script..."
+echo
+echo "…(i) DONE with update script..."
 echo
 echo "~{¿} Do you want to git push?"
 echo "This saves the updated code (to github.com)"
 echo " [y/N]: "
 read $INPUT
-if [ $INPUT == "Y" or $INPUT == "y" ]
+if [ [$INPUT=="Y"] or [$INPUT=="y"] ]
 then
-    git push origin master
+    git push origin master -u
 fi
 echo "_(¡) push complete!"
 echo
