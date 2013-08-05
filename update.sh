@@ -16,7 +16,7 @@ then
     git submodule add git://github.com/moses-smt/mosesdecoder.git moses-smt
 else
 	echo "updating submodule"
-    cd mosesdecoder
+    cd moses-smt
     git pull git://github.com/moses-smt/mosesdecoder.git master
     cd ..
 fi
