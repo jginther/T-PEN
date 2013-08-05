@@ -5,7 +5,7 @@ This fork is by [Thom Hastings](http://turing.slu.edu/~hastint/) to integrate
 via [git svn](http://git-scm.com/docs/git-svn) and
 + [Moses-SMT](http://www.statmt.org/moses/) for _Statistical Machine Translation_  
 via [github](https://github.com/moses-smt/mosesdecoder) into the existing [T-PEN](http://t-pen.org) framework.
-+ Automatic training of Tesseract is done as [such](http://isbullsh.it/2012/06/Automatic-tesseract-training/) with [TesseractTrainer](https://github.com/BaltoRouberol/TesseractTrainer).  
++ Tesseract is trained [automatically](http://isbullsh.it/2012/06/Automatic-tesseract-training/) with [TesseractTrainer](https://github.com/BaltoRouberol/TesseractTrainer).  
 + A sample Tesseract data set is provided by Kevin Scannell, [Tesseract-GLE-Unical](https://code.google.com/p/tesseract-gle-unical/)
 
 To-Do
