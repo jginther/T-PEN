@@ -9,12 +9,12 @@
 #!/bin/sh
 echo
 echo "-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-"
-echo " _____     ____  _____ _   _                  "
-echo "|_   _|   |  _ \\| ____| \\ | |  ___  _ __ __ _ "
+echo " _____     ____  _____ _   _       T-PEN.org "
+echo "|_   _|   |  _ \\| ____| \\ | |  ___  _ __ __ _"
 echo "  | |_____| |_) |  _| |  \\| | / _ \\| '__/ _\` |"
 echo "  | |_____|  __/| |___| |\\  || (_) | | | (_| |"
 echo "  |_|     |_|   |_____|_| \\_(_)___/|_|  \\__, |"
-echo "                                        |___/ "
+echo "     T-PEN.org backend Update Script    |___/ "
 echo "-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-"
 echo "Welcome to the T-PEN.org backend Update Script"
 echo "-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-"
@@ -75,6 +75,7 @@ echo
 echo "~{¿} Do you want to \'git push\'?"
 echo "This saves the updated code (to github.com)"
 echo " [y/N]: "
+read $INPUT
 if [ $INPUT == "Y" ] or [ $INPUT == "y" ]
 then
     git push origin master -u
