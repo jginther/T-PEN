@@ -1,10 +1,10 @@
 TPEN is open source software, made available under the Educational Community License, Version 2.0. You can install your own instance of TPEN, or just look at the source code to see how things work. Note that you may use TPEN at t-pen.org for free any time, there is no need to install your own copy just to use the software. 
 
 TPEN requires tomcat 6, mysql, and an smtp server. TPEN will run under both linux and windows. Building TPEN from source requires apache ant. We have not tested installing it on Mac OS, but there is no reason why that should not work. 
-If you want to use TPEN without modifying the source code, skip to step 5.
+
 0. Download the database extract from http://t-pen.org/tpensetup.sql . Create a database and user for TPEN, then import the database extract (ex. mysql -u tpen -p TPEN< tpen_extract.sql)
 1. Download the source code and extract it. Also download the war file from http://t-pen.org/TPEN.war, which contains the needed libraries.
-2. Make any modifications to the source code.
+2. Make any modifications to the source code. If you want to use TPEN without modifying the source code, skip to step 5.
 3. Edit src/java/version.properties setting the following:
 	LOCALIMAGESTORE=(the complete path to where you want locally hosted images to be stored)
 	DBUSER=(database user)
