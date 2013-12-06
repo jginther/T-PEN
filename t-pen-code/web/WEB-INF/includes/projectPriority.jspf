@@ -1,0 +1,94 @@
+<%@page import="org.apache.jasper.tagplugins.jstl.core.Redirect"%>
+<%@page import="sun.tools.jar.resources.jar"%>
+<%@page import="textdisplay.ProjectPriority"%>
+<%@ page pageEncoding="UTF-8" %>
+<%
+if (request.getParameter("priority")!=null){
+    // The user has requested a reordering of projects.
+    String priority = request.getParameter("priority");
+    ProjectPriority favorite = new ProjectPriority(UID);
+    java.util.List<String> favorites = java.util.Arrays.asList(priority.split(","));
+    java.util.Iterator itr = favorites.iterator();
+    int i = 0;
+    while (itr.hasNext()){
+        favorite.setPriority(Integer.parseInt(itr.next().toString()), i++);
+    }
+    userProjects = thisUser.getUserProjects();
+}
+%>
+<a id="rearrangeProjects" class="tpenButton ui-button" href="#" 
+   title="Customize the order in which your projects are listed" 
+   onclick="$('#projectOrdering').show();return false;">
+    <span class="ui-icon ui-icon-shuffle left"></span>Organize Projects</a>
+<div id="projectOrdering" class="ui-widget-content ui-corner-all">
+    <div id="projectOrderingHeader">
+        <a id="closeProjectOrdering" href="#"
+           onclick="$('#projectOrdering').fadeOut('normal');return false;" 
+           class="right tpenButton ui-button">
+            Close<span class="ui-icon ui-icon-close right"></span></a>        
+        <h3>Project Ordering</h3>
+        <p>Click and drag to reorganize your project list.</p>
+    </div>
+    <div id="projectOrderList">
+    <%
+    int iProjectID = 0; String iProjectTitle;
+    for (int i = 0; i < userProjects.length; i++) {
+        iProjectID = userProjects[i].getProjectID();
+        iProjectTitle = userProjects[i].getProjectName();
+        out.print("<span class='tpenButton orderProject' title='" 
+                + iProjectTitle + "' projectid='" + iProjectID + "'>" 
+                + iProjectTitle + "</span>");
+    }
+    %>
+    </div>
+    <div id="projectOrderingSubmit">
+    <a class="tpenButton" id="changeOrder">Update Order</a>
+    </div>
+</div>
+<script>
+    $(function(){
+        // Chrome has a bug on fixed positioning inside of li elements.
+        $("#projectOrdering").appendTo("body"); 
+        $("#projectOrderList").sortable({
+            axis:'y',
+            items:'span',
+            containment:'parent',
+            sort: function(){
+                $(".ui-sortable-helper").addClass("ui-state-highlight");},
+            stop: function(){
+                $(".orderProject").removeClass("ui-state-highlight");}
+        });
+        $("#projectOrderList").disableSelection();
+        $("#changeOrder").on("click",function(){
+            var url =  window.location.pathname;
+            // Check for other parameters
+            var append = new Array();
+            <%if(request.getParameter("p") != null) {
+                out.println("append.push('p='+"
+                        + request.getParameter("p") + ");");
+            }else if(request.getParameter("pageno") != null) {
+                out.println("append.push('p='+"
+                        + request.getParameter("pageno") + ");");
+            }else if(request.getParameter("folio") != null) {
+                out.println("append.push('p='+"
+                        + request.getParameter("folio") + ");");
+            }; 
+            if(request.getParameter("projectID") != null) {
+                out.println("append.push('projectID='+"
+                        + request.getParameter("projectID") + ");");
+            };%> 
+            if (!isNaN($("#tabs").tabs("option","selected"))){
+                // Retain selected tab on page reload
+                append.push("selecTab="+$("#tabs").tabs("option","selected"));
+            }
+            if (append.length>0) {
+                url = url + "?" + append.join("&");
+            }
+            var priority = new Array();
+            $(".orderProject").each(function(index){
+                priority.push($(this).attr('projectid'));
+            });
+            document.location.href= url+ "&priority="+priority.join(",");;
+        });
+    });
+</script>
