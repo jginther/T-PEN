@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 [submodule "TesseractTrainer"]
 	path = TesseractTrainer
 	url = git://github.com/BaltoRouberol/TesseractTrainer.git
@@ -10,3 +11,11 @@
 [submodule "moses-smt"]
 	path = moses-smt
 	url = git://github.com/moses-smt/mosesdecoder.git
+=======
+[submodule "contrib/arrow-pipelines/python/pcl"]
+	path = contrib/arrow-pipelines/python/pcl
+	url = https://github.com/ianj-als/pcl.git
+[submodule "contrib/omtc/omtc"]
+	path = contrib/omtc/omtc
+	url = https://github.com/ianj-als/omtc.git
+>>>>>>> 81ad92cc3f4653bc6ff19b63faae19e52606faec

@@ -1,0 +1,9 @@
+<%@ page pageEncoding="UTF-8" %>
+<noscript>
+<div id="noscript">
+    You are blocking scripts on this page. T-PEN uses 
+    <code>googleapis.com</code> and <code>t-pen.org</code> 
+    for necessary functionality.
+</div>
+<div id="trexHead"></div>
+</noscript>

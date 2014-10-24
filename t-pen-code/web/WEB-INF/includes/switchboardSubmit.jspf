@@ -1,0 +1,69 @@
+<%@page import="org.apache.jasper.tagplugins.jstl.core.Redirect"%>
+<%@page import="sun.tools.jar.resources.jar"%>
+<%@ page pageEncoding="UTF-8" %>
+<%
+    if (thisProject.getAssociatedPartnerProject() != null) {
+        //List Collaborations
+        PartnerProject collaboration = thisProject.getAssociatedPartnerProject();
+        if (collaboration.getURL().length() > 3) {
+            String userEmail = thisUser.getUname();
+            String userFname = thisUser.getFname();
+            String userLname = thisUser.getLname();
+            String exportURI = "t-pen.org/TPEN/export?type=xml&projectID=" + projectID + "&linebreak=inline&imageWrap=true&tei=true";
+            String projectURI = "t-pen.org/TPEN/project.jsp?projectID=" + projectID;
+%>
+<a id="tpenSubmit" name="TpenSubmit" type="submit" value="submit" 
+        title='Submit to Switchboard' 
+        onclick="$(this).next('form').slideDown();$(this).add($(this).next('form').next('form')).slideUp();return false;" 
+        class="ui-button tpenButton">
+    <span class='ui-icon ui-icon-link right'></span>
+    Submit this project to Switchboard: <%out.print(collaboration.getName());%>
+</a>
+<form id="linkPartner" target="_blank" method="POST" 
+        onsubmit="return Export.validForm();"
+        action="<%out.print(collaboration.getURL());%>" 
+        style="display: none;">
+    <input name="submitterEmailAddress" type="hidden" value="<%out.print(userEmail);%>" />
+    <input name="submitterFname" type="hidden" value="<%out.print(userFname);%>" />
+    <input name="submitterLname" type="hidden" value="<%out.print(userLname);%>" />
+    <input name="uriExport" type="hidden" value="<%out.print(exportURI);%>" />
+    <input name="uriProject" type="hidden" value="<%out.print(projectURI);%>" />
+
+<div id="limitFolios" class="ui-widget-content ui-corner-all">
+    <div id="limitFoliosHeader">
+        <a id="closeLimitFolios" href="#"
+           onclick="$('#linkPartner').slideUp();$(this).parentsUntil('#tabs-5').next('form').add('#tpenSubmit').slideDown();return false;" 
+           class="right tpenButton ui-button">
+            Close<span class="ui-icon ui-icon-close right"></span></a>        
+        <h3>Select Range</h3>
+        <p>Submit a specific range of images or click below to send the
+        entire project.</p>
+    </div>
+    <div id="limitPageRange">
+        <strong>Start with page:</strong><select class='beginFolio' name='beginFolio'></select><br/>
+        <strong>End with page:</strong><select class='endFolio' name='endFolio'></select><br/>
+    </div>
+
+    <button id="submitLimit" name="TpenSubmit" type="submit" 
+            value="submit" title="Submit to Switchboard" 
+            class="ui-button tpenButton ui-state-default ui-corner-all ui-helper-clearfix">
+        <span class="ui-icon ui-icon-link right"></span>
+        Submit Complete Project 
+    </button>    
+</div>
+<script type="text/javascript">
+    $(function(){
+            var limiterDropdowns='<%out.print(ESAPI.encoder().decodeFromURL(thisProject.getFolioDropdown()));%>';
+            $("#limitPageRange").find("select").each(function(index){
+                $(this).append(limiterDropdowns)
+                .children("option").val(function(){
+                    return parseInt($(this).val(),10);
+                }).eq(-index).attr("selected",true);
+            });
+    });
+    function addRange() {
+        var rangeAppend = '&beginFolio='+$('.beginFolio').val()+'&endFolio='+$('.endFolio').val();
+        document.getElementsByName('uriExport').value += rangeAppend;
+    }
+</script>
+</form>

@@ -1,0 +1,16 @@
+<%@ page pageEncoding="UTF-8" %>
+<%
+// Define String errorMessage before including
+String message = "This error is so bad, we do not even know what happened.";
+if (errorMessage != null){
+    message = errorMessage;
+}
+%>
+<style type="text/css">
+    body {visibility: visible !important;}
+</style>
+<div id="urgentError">
+    <p id="errorMessage"><%out.print(message);%></p>
+    <a href='index.jsp'>T&#8209;PEN Home</a>
+</div>
+<div id="trexHead"></div>
